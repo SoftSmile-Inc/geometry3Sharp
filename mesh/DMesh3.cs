@@ -254,9 +254,7 @@ namespace g3
                 t.a = mapV[t.a]; t.b = mapV[t.b]; t.c = mapV[t.c];
                 int g = (copy.HasTriangleGroups) ? copy.GetTriangleGroup(tid) : InvalidID;
                 int appendedTriangleId = AppendTriangle(t, g);
-                if (appendedTriangleId < 0)
-                    throw new Exception("Couldn't copy a triangle");
-                mapT[tid] = appendedTriangleId;
+                mapT[tid] = appendedTriangleId < 0 ? IndexMap.InvalidIndex : appendedTriangleId;
                 max_group_id = Math.Max(max_group_id, g+1);
             }
 
