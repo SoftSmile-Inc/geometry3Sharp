@@ -103,8 +103,15 @@ namespace g3
                 foreach ( int ti in mesh.TriangleIndices() ) {
                     Index3i t = mesh.GetTriangle(ti);
                     Vector3d a = mesh.GetVertex(t.a), b = mesh.GetVertex(t.b), c = mesh.GetVertex(t.c);
-                    Vector3d n = MathUtil.Normal(a, b, c);
-                    writer.WriteLine("facet normal " + three_floats, n.x, n.y, n.z);
+                    if (options.bPerVertexNormals)
+                    {
+                        Vector3d n = MathUtil.Normal(a, b, c);
+                        writer.WriteLine("facet normal " + three_floats, n.x, n.y, n.z);
+                    }
+                    else
+                    {
+                        writer.WriteLine("facet normal 0 0 0");
+                    }
                     writer.WriteLine("outer loop" + writer.NewLine + "vertex " + three_floats, a.x, a.y, a.z);
                     writer.WriteLine("vertex " + three_floats, b.x, b.y, b.z);
                     writer.WriteLine("vertex " + three_floats, c.x, c.y, c.z);
