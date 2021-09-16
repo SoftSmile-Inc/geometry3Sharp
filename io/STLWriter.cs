@@ -105,7 +105,9 @@ namespace g3
                     Vector3d a = mesh.GetVertex(t.a), b = mesh.GetVertex(t.b), c = mesh.GetVertex(t.c);
                     if (options.bPerVertexNormals)
                     {
-                        Vector3d n = MathUtil.Normal(a, b, c);
+                        Vector3d n = mesh.HasVertexNormals
+                            ? (mesh.GetVertexNormal(t.a) + mesh.GetVertexNormal(t.b) + mesh.GetVertexNormal(t.c)) / 3
+                            : MathUtil.Normal(a, b, c);
                         writer.WriteLine("facet normal " + three_floats, n.x, n.y, n.z);
                     }
                     else
