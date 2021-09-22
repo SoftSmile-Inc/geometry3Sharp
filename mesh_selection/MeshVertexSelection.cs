@@ -271,14 +271,16 @@ namespace g3
         /// <summary>
         /// Grow selection outwards from seed vertex, until it hits boundaries defined by vertex filter.
         /// </summary>
-        public void FloodFill(int vSeed, Func<int, bool> vertIncludedF = null, int maxVerticesCount = int.MaxValue)
+        /// <returns>False if maxVerticesCount has been reached</returns>
+        public bool FloodFill(int vSeed, Func<int, bool> vertIncludedF = null, int maxVerticesCount = int.MaxValue)
         {
-            FloodFill(new int[] { vSeed }, vertIncludedF, maxVerticesCount);
+            return FloodFill(new int[] { vSeed }, vertIncludedF, maxVerticesCount);
         }
         /// <summary>
         /// Grow selection outwards from seed vertex, until it hits boundaries defined by vertex filter.
         /// </summary>
-        public void FloodFill(int[] Seeds, Func<int, bool> vertIncludedF = null, int maxVerticesCount = int.MaxValue)
+        /// <returns>False if maxVerticesCount has been reached</returns>
+        public bool FloodFill(int[] Seeds, Func<int, bool> vertIncludedF = null, int maxVerticesCount = int.MaxValue)
         {
             DVector<int> stack = new DVector<int>(Seeds);
             for (int k = 0; k < Seeds.Length; ++k)
@@ -292,10 +294,11 @@ namespace g3
                         continue;
                     add(nbr_vid);
                     if (Selected.Count >= maxVerticesCount)
-                        return;
+                        return false;
                     stack.push_back(nbr_vid);
                 }
             }
+            return true;
         }
 
 
