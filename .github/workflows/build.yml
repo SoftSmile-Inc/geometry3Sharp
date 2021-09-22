@@ -7,7 +7,8 @@ on:
     branches:
       - softsmile
 jobs:
-  FBuild_geometry3Sharp_netstandard:
+  build_geometry3Sharp_netstandard:
+    name: "Build geometry3Sharp_netstandard.csproj"
     runs-on: ubuntu-20.04
     steps:
       - name: Check out repository code
