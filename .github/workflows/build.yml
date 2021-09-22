@@ -13,7 +13,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v2
       - name: Setup dotnet
-      - uses: actions/setup-dotnet@v1.8.2
+        uses: actions/setup-dotnet@v1.8.2
         with:
           dotnet-version: 3.1.301
       - run: dotnet build geometry3Sharp_netstandard.csproj
