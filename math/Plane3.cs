@@ -1,9 +1,10 @@
-﻿using System;
+﻿
+using System;
 
 namespace g3
 {
     //3D plane, based on WildMagic5 Wm5Plane3 class
-
+    [Serializable]
     public struct Plane3d
     {
         public Vector3d Normal;
@@ -81,7 +82,7 @@ namespace g3
 
 
 
-
+    [Serializable]
     public struct Plane3f
     {
         public Vector3f Normal;
