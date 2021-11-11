@@ -17,15 +17,21 @@ namespace gs
 
         public bool OnlyUniquePairs = false;
 
-		public MergeCoincidentEdges(DMesh3 mesh)
+        private List<DMesh3.MergeEdgesInfo> _mergeEdgesInfos;
+
+        public IReadOnlyList<DMesh3.MergeEdgesInfo> MergeEdgesInfos => _mergeEdgesInfos;
+
+        public MergeCoincidentEdges(DMesh3 mesh)
 		{
 			Mesh = mesh;
-		}
+            _mergeEdgesInfos = new List<DMesh3.MergeEdgesInfo>(50);
+        }
 
 		double merge_r2;
 
 		public virtual bool Apply() {
-			merge_r2 = MergeDistance * MergeDistance;
+            _mergeEdgesInfos.Clear();
+            merge_r2 = MergeDistance * MergeDistance;
 
             // construct hash table for edge midpoints
             MeshBoundaryEdgeMidpoints pointset = new MeshBoundaryEdgeMidpoints(this.Mesh);
@@ -89,7 +95,8 @@ namespace gs
                 Q.Enqueue(new DuplicateEdge() { eid = i }, EquivSets[i].Count);
 			}
 
-			while ( Q.Count > 0 ) {
+            int failedCount = 0;
+            while ( Q.Count > 0 ) {
 				DuplicateEdge e = Q.Dequeue();
 				if (Mesh.IsEdge(e.eid) == false || EquivSets[e.eid] == null || remaining.Contains(e.eid) == false )
 					continue;               // dealt with this edge already
@@ -101,26 +108,25 @@ namespace gs
 				// find viable match
 				// [TODO] how to make good decisions here? prefer planarity?
 				bool merged = false;
-				int failed = 0;
 				for (int i = 0; i < equiv.Count && merged == false; ++i ) {
 					int other_eid = equiv[i];
 					if ( Mesh.IsEdge(other_eid) == false || Mesh.IsBoundaryEdge(other_eid) == false )
 						continue;
 
-					DMesh3.MergeEdgesInfo info;
-					MeshResult result = Mesh.MergeEdges(e.eid, other_eid, out info);
+					MeshResult result = Mesh.MergeEdges(e.eid, other_eid, out DMesh3.MergeEdgesInfo info);
 					if ( result != MeshResult.Ok ) {
 						equiv.RemoveAt(i);
                         i--;
 
 						EquivSets[other_eid].Remove(e.eid);
-						//Q.UpdatePriority(...);  // how need ref to queue node to do this...??
-						//   maybe equiv set is queue node??
+                        //Q.UpdatePriority(...);  // how need ref to queue node to do this...??
+                        //   maybe equiv set is queue node??
 
-						failed++;
+                        failedCount++;
 					} else {
-						// ok we merged, other edge is no longer free
-						merged = true;
+                        // ok we merged, other edge is no longer free
+                        _mergeEdgesInfos.Add(info);
+                        merged = true;
 						EquivSets[other_eid] = null;
 						remaining.Remove(other_eid);
 					}
@@ -137,6 +143,8 @@ namespace gs
 				}
 
 			}
+            if (failedCount > 0)
+                return false;
 
 			return true;
 		}
