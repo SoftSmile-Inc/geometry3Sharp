@@ -168,6 +168,25 @@ namespace g3
             Min.x -= fRadius; Min.y -= fRadius; Min.z -= fRadius;
             Max.x += fRadius; Max.y += fRadius; Max.z += fRadius;
         }
+
+        public AxisAlignedBox3f Expanded(float fRadius)
+        {
+            return new AxisAlignedBox3f(Min.x - fRadius, Min.y - fRadius, Min.z - fRadius,
+                                        Max.x + fRadius, Max.y + fRadius, Max.z + fRadius);
+        }
+
+        public AxisAlignedBox3f Expanded(Vector3f expand)
+        {
+            return new AxisAlignedBox3f(Min.x - expand.x, Min.y - expand.y, Min.z - expand.z,
+                                        Max.x + expand.x, Max.y + expand.y, Max.z + expand.z);
+        }
+
+        public AxisAlignedBox3f Expanded(float xmin, float ymin, float zmin, float xmax, float ymax, float zmax)
+        {
+            return new AxisAlignedBox3f(Min.x - xmin, Min.y - ymin, Min.z - zmin,
+                                        Max.x + xmax, Max.y + ymax, Max.z + zmax);
+        }
+
         //! value is added to min and subtracted from max
         public void Contract(float fRadius)
         {

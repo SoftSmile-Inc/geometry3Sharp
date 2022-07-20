@@ -162,10 +162,22 @@ namespace g3
         }
 
         //! return this box expanded by radius
-        public AxisAlignedBox3d Expanded(double fRadius) {
-            return new AxisAlignedBox3d(
-                Min.x - fRadius, Min.y - fRadius, Min.z - fRadius,
-                Max.x + fRadius, Max.y + fRadius, Max.z + fRadius);
+        public AxisAlignedBox3d Expanded(double fRadius)
+        {
+            return new AxisAlignedBox3d(Min.x - fRadius, Min.y - fRadius, Min.z - fRadius,
+                                        Max.x + fRadius, Max.y + fRadius, Max.z + fRadius);
+        }
+
+        public AxisAlignedBox3d Expanded(Vector3d expand)
+        {
+            return new AxisAlignedBox3d(Min.x - expand.x, Min.y - expand.y, Min.z - expand.z,
+                                        Max.x + expand.x, Max.y + expand.y, Max.z + expand.z);
+        }
+
+        public AxisAlignedBox3d Expanded(double xmin, double ymin, double zmin, double xmax, double ymax, double zmax)
+        {
+            return new AxisAlignedBox3d(Min.x - xmin, Min.y - ymin, Min.z - zmin,
+                                        Max.x + xmax, Max.y + ymax, Max.z + zmax);
         }
 
         //! value is added to min and subtracted from max
