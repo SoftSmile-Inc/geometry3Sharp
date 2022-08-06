@@ -284,11 +284,11 @@ namespace g3
         {
             return (a.x != b.x || a.y != b.y || a.z != b.z);
         }
-        public override readonly bool Equals(object obj)
+        public readonly override bool Equals(object obj)
         {
             return this == (Vector3d)obj;
         }
-        public override readonly int GetHashCode()
+        public readonly override int GetHashCode()
         {
             unchecked // Overflow is fine, just wrap
             {
@@ -334,7 +334,7 @@ namespace g3
 
 
 
-        public override readonly string ToString() {
+        public readonly override string ToString() {
             return string.Format("{0:F8} {1:F8} {2:F8}", x, y, z);
         }
         public readonly string ToString(string fmt) {
