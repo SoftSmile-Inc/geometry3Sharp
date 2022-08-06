@@ -153,7 +153,7 @@ namespace g3
             return v1.Cross(v2);
         }
 
-        public Vector3f UnitCross(Vector3f v2) {
+        public readonly Vector3f UnitCross(Vector3f v2) {
             Vector3f n = new Vector3f(
                 y * v2.z - z * v2.y,
                 z * v2.x - x * v2.z,
@@ -178,11 +178,11 @@ namespace g3
         }
 
 
-        public float DistanceSquared(Vector3f v2) {
+        public readonly float DistanceSquared(Vector3f v2) {
 			float dx = v2.x-x, dy = v2.y-y, dz = v2.z-z;
 			return dx*dx + dy*dy + dz*dz;
         }
-        public float Distance(Vector3f v2) {
+        public readonly float Distance(Vector3f v2) {
             float dx = v2.x-x, dy = v2.y-y, dz = v2.z-z;
 			return (float)Math.Sqrt(dx*dx + dy*dy + dz*dz);
 		}
@@ -267,13 +267,13 @@ namespace g3
         {
             return (a.x != b.x || a.y != b.y || a.z != b.z);
         }
-        public override readonly bool Equals(object obj)
+        public readonly override bool Equals(object obj)
         {
             if (obj == null) return false;
             if (obj.GetType() != GetType()) return false;
             return this == (Vector3f)obj;
         }
-        public override readonly int GetHashCode()
+        public readonly override int GetHashCode()
         {
             unchecked // Overflow is fine, just wrap
             {
@@ -316,7 +316,7 @@ namespace g3
 
 
 
-        public override readonly string ToString() {
+        public readonly override string ToString() {
             return string.Format("{0:F8} {1:F8} {2:F8}", x, y, z);
         }
         public readonly string ToString(string fmt) {

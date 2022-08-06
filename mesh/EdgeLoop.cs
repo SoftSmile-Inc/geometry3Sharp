@@ -88,7 +88,7 @@ namespace g3
             for (int i = 0; i < NE; ++i) {
                 Edges[i] = mesh.FindEdge(Vertices[i], Vertices[(i + 1)%NE]);
                 if (Edges[i] == DMesh3.InvalidID)
-                    throw new Exception("EdgeLoop.FromVertices: vertices are not connected by edge!");
+                    throw new VertexRelatedException("EdgeLoop.FromVertices: vertices are not connected by edge!", Vertices[i]);
             }
             return new EdgeLoop(mesh, Vertices, Edges, false);
         }
@@ -120,7 +120,7 @@ namespace g3
                 int a = Vertices[i], b = Vertices[(i + 1) % Vertices.Length];
                 Edges[i] = mesh.FindEdge(a, b);
                 if (Edges[i] == DMesh3.InvalidID)
-                    throw new Exception("EdgeLoop.FromVertices: invalid edge [" + a + "," + b + "]");
+                    throw new VertexRelatedException("EdgeLoop.FromVertices: invalid edge [" + a + "," + b + "]", a);
             }
 
             return new EdgeLoop(mesh, Vertices, Edges, false);
