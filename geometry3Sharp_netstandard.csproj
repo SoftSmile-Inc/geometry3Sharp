@@ -12,6 +12,8 @@
     <PackageTags>geometry3;graphics;math;approximation;solvers;color;convexhull;meshes;spatial;curves;solids;3d;unity</PackageTags>
 	<RepositoryUrl>https://github.com/gradientspace/geometry3Sharp</RepositoryUrl>
 	<RepositoryType>git</RepositoryType>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -32,6 +34,7 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+    <Compile Remove="test\*.*" />
   </ItemGroup>
 
 </Project>

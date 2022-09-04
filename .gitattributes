@@ -1,0 +1,4 @@
+# Force stl and obj being added as text files as long GitHub has a bug
+# rejecting pushing files to LFS in forks
+*.stl text
+*.obj text
