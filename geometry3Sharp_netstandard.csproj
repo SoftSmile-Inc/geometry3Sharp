@@ -10,8 +10,9 @@
     <PackageLicenseUrl>https://github.com/gradientspace/geometry3Sharp/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/gradientspace/geometry3Sharp</PackageProjectUrl>
     <PackageTags>geometry3;graphics;math;approximation;solvers;color;convexhull;meshes;spatial;curves;solids;3d;unity</PackageTags>
-	<RepositoryUrl>https://github.com/gradientspace/geometry3Sharp</RepositoryUrl>
-	<RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/gradientspace/geometry3Sharp</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <!--Rework the way the project information is added to the package. Now it requires disabling the next two options-->
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
@@ -34,6 +35,7 @@
 
   <ItemGroup>
     <Folder Include="Properties\" />
+    <!--Remove the tests directory because it's a part of another project-->
     <Compile Remove="test\*.*" />
   </ItemGroup>
 
