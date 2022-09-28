@@ -1,4 +1,4 @@
-name: Build
+name: Pull requests routine
 on:
   push:
     branches:
@@ -7,8 +7,8 @@ on:
     branches:
       - softsmile
 jobs:
-  build_geometry3Sharp_netstandard:
-    name: "Build geometry3Sharp_netstandard.csproj"
+  test_geometry3Sharp_netstandard:
+    name: "Test geometry3sharp.Tests.sln"
     runs-on: ubuntu-20.04
     steps:
       - name: Check out repository code
@@ -16,5 +16,5 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v1.8.2
         with:
-          dotnet-version: 3.1.301
-      - run: dotnet build geometry3Sharp_netstandard.csproj
+          dotnet-version: 6.0.400
+      - run: dotnet test ./test/geometry3sharp.Tests.sln
