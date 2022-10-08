@@ -1,10 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-#if G3_USING_UNITY
-using UnityEngine;
-#endif
 
 namespace g3
 {
@@ -251,28 +245,6 @@ namespace g3
         public string ToString(string fmt) {
             return string.Format("{0} {1} {2} {3}", x.ToString(fmt), y.ToString(fmt), z.ToString(fmt), w.ToString(fmt));
         }
-
-
-
-
-#if G3_USING_UNITY
-        public static implicit operator Vector4f(Vector4 v)
-        {
-            return new Vector4f(v.x, v.y, v.z, v.w);
-        }
-        public static implicit operator Vector4(Vector4f v)
-        {
-            return new Vector4(v.x, v.y, v.z, v.w);
-        }
-        public static implicit operator Color(Vector4f v)
-        {
-            return new Color(v.x, v.y, v.z, v.w);
-        }
-        public static implicit operator Vector4f(Color c)
-        {
-            return new Vector4f(c.r, c.g, c.b, c.a);
-        }
-#endif
 
     }
 }

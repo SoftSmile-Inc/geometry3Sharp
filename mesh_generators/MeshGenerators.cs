@@ -1,9 +1,5 @@
 ﻿using System;
 
-#if G3_USING_UNITY
-using UnityEngine;
-#endif
-
 namespace g3
 {
     abstract public class MeshGenerator
@@ -248,67 +244,5 @@ namespace g3
             Vector3d c = Vector3d.Lerp((Vector3d)a, (Vector3d)b, t);
             return new Vector3i((int)Math.Round(c.x), (int)Math.Round(c.y), (int)Math.Round(c.z));
         }
-
-
-
-
-#if G3_USING_UNITY
-        // generate unity mesh. 
-        // [TODO] The left/right flip here may not work...
-
-        static Vector3[] ToUnityVector3(VectorArray3f a, bool bFlipLR = false) {
-            Vector3[] v = new Vector3[a.Count];
-            float fZSign = (bFlipLR) ? -1 : 1;
-            for (int i = 0; i < a.Count; ++i) {
-                v[i].x = a.array[3 * i];
-                v[i].y = a.array[3 * i + 1];
-                v[i].z = fZSign * a.array[3 * i + 2];
-            }
-            return v;
-        }
-        static Vector3[] ToUnityVector3(VectorArray3d a, bool bFlipLR = false) {
-            Vector3[] v = new Vector3[a.Count];
-            float fZSign = (bFlipLR) ? -1 : 1;
-            for (int i = 0; i < a.Count; ++i) {
-                v[i].x = (float)a.array[3 * i];
-                v[i].y = (float)a.array[3 * i + 1];
-                v[i].z = fZSign * (float)a.array[3 * i + 2];
-            }
-            return v;
-        }
-        static Vector2[] ToUnityVector2(VectorArray2f a) {
-            Vector2[] v = new Vector2[a.Count];
-            for (int i = 0; i < a.Count; ++i) {
-                v[i].x = (float)a.array[2 * i];
-                v[i].y = (float)a.array[2 * i + 1];
-            }
-            return v;
-        }
-
-        /// <summary>
-        /// copy generated mesh data into a Unity Mesh object
-        /// </summary>
-        public void MakeMesh(Mesh m, bool bRecalcNormals = false, bool bFlipLR = false)
-        {
-            m.vertices = ToUnityVector3(vertices, bFlipLR);
-            if (uv != null && WantUVs)
-                m.uv = ToUnityVector2(uv);
-            if (normals != null && WantNormals)
-                m.normals = ToUnityVector3(normals, bFlipLR);
-            if ( m.vertexCount > 64000 ||  triangles.Count > 64000 )
-                m.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
-            m.triangles = triangles.array;
-            if (bRecalcNormals)
-                m.RecalculateNormals();
-        }
-#endif
     }
-
-
-
-
-
-
-
-
 }

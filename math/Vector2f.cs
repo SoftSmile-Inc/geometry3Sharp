@@ -1,11 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Text;
-
-#if G3_USING_UNITY
-using UnityEngine;
-#endif
 
 namespace g3
 {
@@ -265,19 +258,6 @@ namespace g3
         {
             return new Vector2i((int)v.x, (int)v.y);
         }
-
-
-
-#if G3_USING_UNITY
-        public static implicit operator Vector2f(UnityEngine.Vector2 v)
-        {
-            return new Vector2f(v.x, v.y);
-        }
-        public static implicit operator Vector2(Vector2f v)
-        {
-            return new Vector2(v.x, v.y);
-        }
-#endif
 
     }
 }

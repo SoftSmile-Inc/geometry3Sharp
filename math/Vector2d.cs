@@ -1,7 +1,5 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
-using System.Text;
 
 namespace g3
 {
@@ -295,18 +293,6 @@ namespace g3
         {
             return new Vector2i((int)v.x, (int)v.y);
         }
-
-
-#if G3_USING_UNITY
-        public static implicit operator Vector2d(UnityEngine.Vector2 v)
-        {
-            return new Vector2d(v.x, v.y);
-        }
-        public static explicit operator UnityEngine.Vector2(Vector2d v)
-        {
-            return new UnityEngine.Vector2((float)v.x, (float)v.y);
-        }
-#endif
 
 
 
