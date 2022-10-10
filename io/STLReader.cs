@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace g3
 {
@@ -27,7 +26,7 @@ namespace g3
     ///    DVector<short> colors = Builder.Metadata[0][STLReader.PerTriAttribMetadataName] as DVector<short>;
     /// (for DMesh3Builder, which is the only builder that supports Metadata)
     /// </summary>
-    public class STLReader : IMeshReader
+    public class STLReader
     {
 
         public enum Strategy
@@ -121,41 +120,68 @@ namespace g3
             public short attrib;
         }
 
-
-        public IOReadResult Read(BinaryReader reader, ReadOptions options, IMeshBuilder builder)
+        private static async Task<bool> TryReadBytesAsync(Stream stream, byte[] buffer, int count)
         {
-            if ( options.CustomFlags != null )
+            int readBytes =
+                await stream.ReadAsync(buffer, offset: 0, count: count)
+                .ConfigureAwait(false);
+            if (readBytes != count)
+                return false;
+            return true;
+        }
+
+        private static async Task<int?> ReadInt32Async(Stream stream, byte[] buffer)
+        {
+            int readBytes =
+                await stream.ReadAsync(buffer, offset: 0, count: sizeof(int))
+                    .ConfigureAwait(false);
+            if (readBytes != sizeof(int))
+                return null;
+            return BitConverter.ToInt32(buffer, 0);
+        }
+
+        public async Task<IOReadResult> ReadBinaryStlAsync(Stream stream, ReadOptions options, IMeshBuilder builder)
+        {
+            if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
 
-            /*byte[] header = */reader.ReadBytes(80);
-            int totalTris = reader.ReadInt32();
+            // The buffer is always 80 bytes and it's not used
+            const int headerSize = 80;
+            byte[] buffer = new byte[headerSize];
+            if (!await TryReadBytesAsync(stream, buffer, headerSize).ConfigureAwait(false))
+                return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have a header");
 
-            Objects = new List<STLSolid>();
-            Objects.Add(new STLSolid());
+            int? trianglesCount = await ReadInt32Async(stream, buffer).ConfigureAwait(false);
+            if (trianglesCount is null)
+                return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have triangles count");
 
-            int tri_size = 50;      // bytes
-            IntPtr bufptr = Marshal.AllocHGlobal(tri_size);
-            stl_triangle tmp = new stl_triangle();
-            Type tri_type = tmp.GetType();
+            Objects = new List<STLSolid>
+            {
+                new STLSolid()
+            };
 
+            int triangleStructureSize = 50;
+            IntPtr bufptr = Marshal.AllocHGlobal(triangleStructureSize);
             DVector<short> tri_attribs = new DVector<short>();
+            try
+            {
+                for (int i = 0; i < trianglesCount.Value; ++i)
+                {
+                    if (!await TryReadBytesAsync(stream, buffer, triangleStructureSize).ConfigureAwait(false))
+                        return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
 
-            try {
-                for (int i = 0; i < totalTris; ++i) {
-                    byte[] tri_bytes = reader.ReadBytes(50);
-                    if (tri_bytes.Length < 50)
-                        break;
+                    Marshal.Copy(buffer, 0, bufptr, triangleStructureSize);
+                    stl_triangle stlTriangle = Marshal.PtrToStructure<stl_triangle>(bufptr);
 
-                    Marshal.Copy(tri_bytes, 0, bufptr, tri_size);
-                    stl_triangle tri = (stl_triangle)Marshal.PtrToStructure(bufptr, tri_type);
-
-                    append_vertex(tri.ax, tri.ay, tri.az);
-                    append_vertex(tri.bx, tri.by, tri.bz);
-                    append_vertex(tri.cx, tri.cy, tri.cz);
-                    tri_attribs.Add(tri.attrib);
+                    append_vertex(stlTriangle.ax, stlTriangle.ay, stlTriangle.az);
+                    append_vertex(stlTriangle.bx, stlTriangle.by, stlTriangle.bz);
+                    append_vertex(stlTriangle.cx, stlTriangle.cy, stlTriangle.cz);
+                    tri_attribs.Add(stlTriangle.attrib);
                 }
 
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 return new IOReadResult(IOCode.GenericReaderError, "exception: " + e.Message);
             }
 
@@ -170,12 +196,9 @@ namespace g3
             return new IOReadResult(IOCode.Ok, "");
         }
 
-
-
-
-        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadTextStlAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
-            if ( options.CustomFlags != null )
+            if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
 
             // format is just this, with facet repeated N times:
@@ -197,18 +220,18 @@ namespace g3
             Objects = new List<STLSolid>();
 
             int nLines = 0;
-            while (reader.Peek() >= 0) {
-
-                string line = reader.ReadLine();
+            while (reader.Peek() >= 0)
+            {
+                string line = await reader.ReadLineAsync().ConfigureAwait(false);
                 nLines++;
-                string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
                     continue;
 
                 if (tokens[0].Equals("vertex", StringComparison.OrdinalIgnoreCase)) {
-                    float x = (tokens.Length > 1) ? Single.Parse(tokens[1]) : 0;
-                    float y = (tokens.Length > 2) ? Single.Parse(tokens[2]) : 0;
-                    float z = (tokens.Length > 3) ? Single.Parse(tokens[3]) : 0;
+                    float x = (tokens.Length > 1) ? float.Parse(tokens[1]) : 0;
+                    float y = (tokens.Length > 2) ? float.Parse(tokens[2]) : 0;
+                    float z = (tokens.Length > 3) ? float.Parse(tokens[3]) : 0;
                     append_vertex(x, y, z);
 
                 // [RMS] we don't really care about these lines...
@@ -217,11 +240,12 @@ namespace g3
                 //    vertices_in_loop = 0;
 
                 //} else if (tokens[0].Equals("endloop", StringComparison.OrdinalIgnoreCase)) {
-                //    in_loop = false;
-                        
-
-                } else if (tokens[0].Equals("facet", StringComparison.OrdinalIgnoreCase)) {
-                    if ( in_solid == false ) {      // handle bad STL
+                //    in_loop = false
+                }
+                else if (tokens[0].Equals("facet", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (in_solid == false)
+                    {      // handle bad STL
                         Objects.Add(new STLSolid() { Name = "unknown_solid" });
                         in_solid = true;
                     }
@@ -231,9 +255,9 @@ namespace g3
                 // [RMS] also don't really need to do anything for this one
                 //} else if (tokens[0].Equals("endfacet", StringComparison.OrdinalIgnoreCase)) {
                     //in_facet = false;
-
-
-                } else if (tokens[0].Equals("solid", StringComparison.OrdinalIgnoreCase)) {
+                }
+                else if (tokens[0].Equals("solid", StringComparison.OrdinalIgnoreCase))
+                {
                     STLSolid newObj = new STLSolid();
                     if (tokens.Length == 2)
                         newObj.Name = tokens[1];
@@ -241,9 +265,9 @@ namespace g3
                         newObj.Name = "object_" + Objects.Count;
                     Objects.Add(newObj);
                     in_solid = true;
-
-
-                } else if (tokens[0].Equals("endsolid", StringComparison.OrdinalIgnoreCase)) {
+                }
+                else if (tokens[0].Equals("endsolid", StringComparison.OrdinalIgnoreCase))
+                {
                     // do nothing, done object
                     in_solid = false;
                 }

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace g3
 {
@@ -75,7 +75,7 @@ namespace g3
 
 
 
-    public class OBJReader : IMeshReader
+    public class OBJReader
     {
         DVector<double> vPositions;
         DVector<float> vNormals;
@@ -83,7 +83,7 @@ namespace g3
         DVector<float> vColors;
         DVector<Triangle> vTriangles;
 
-		Dictionary<string, OBJMaterial> Materials;
+        Dictionary<string, OBJMaterial> Materials;
         Dictionary<int, string> UsedMaterials;
 
         bool m_bOBJHasPerVertexColors;
@@ -100,16 +100,16 @@ namespace g3
 
         public OBJReader()
         {
-            this.splitDoubleSlash = new string[] { "//" };
-            this.splitSlash = new char[] { '/' };
+            splitDoubleSlash = new string[] { "//" };
+            splitSlash = new char[] { '/' };
             MTLFileSearchPaths = new List<string>();
         }
 
-		// you need to initialize this with paths if you want .MTL files to load
-		public List<string> MTLFileSearchPaths { get; set; } 
+        // you need to initialize this with paths if you want .MTL files to load
+        public List<string> MTLFileSearchPaths { get; set; } 
 
         // connect to this to get warning messages
-		public event ParsingMessagesHandler warningEvent;
+        public event ParsingMessagesHandler warningEvent;
 
 
         public bool HasPerVertexColors { get { return m_bOBJHasPerVertexColors; } }
@@ -123,12 +123,7 @@ namespace g3
         public bool HasComplexVertices { get; set; }
 
 
-        public IOReadResult Read(BinaryReader reader, ReadOptions options, IMeshBuilder builder)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             Materials = new Dictionary<string, OBJMaterial>();
             UsedMaterials = new Dictionary<int, string>();
@@ -137,16 +132,16 @@ namespace g3
             if (nWarningLevel >= 1)
                 emit_warning("[OBJReader] starting parse");
 
-            var parseResult = ParseInput(reader, options);
+            IOReadResult parseResult = await ParseInputAsync(reader, options).ConfigureAwait(false);
             if (parseResult.code != IOCode.Ok)
                 return parseResult;
 
             if (nWarningLevel >= 1)
                 emit_warning("[OBJReader] completed parse. building.");
 
-            var buildResult = 
-                (UsedMaterials.Count > 1 || HasComplexVertices) ?
-                    BuildMeshes_ByMaterial(options, builder) : BuildMeshes_Simple(options, builder);
+            IOReadResult buildResult = (UsedMaterials.Count > 1 || HasComplexVertices)
+                ? BuildMeshes_ByMaterial(options, builder)
+                : BuildMeshes_Simple(options, builder);
 
             if (nWarningLevel >= 1)
                 emit_warning("[OBJReader] build complete.");
@@ -330,7 +325,7 @@ namespace g3
 
 
 
-        public IOReadResult ParseInput(TextReader reader, ReadOptions options)
+        public async Task<IOReadResult> ParseInputAsync(TextReader reader, ReadOptions options)
         {
             vPositions = new DVector<double>();
             vNormals = new DVector<float>();
@@ -349,7 +344,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0) {
 
-                string line = reader.ReadLine();
+                string line = await reader.ReadLineAsync().ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)

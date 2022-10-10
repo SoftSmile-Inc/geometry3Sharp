@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using g3;
 using Xunit;
@@ -24,7 +25,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public void ReadsBinaryStlVerticesAndTriangles()
+        public async Task ReadsBinaryStlVerticesAndTriangles()
         {
             Vector3d[] expectedVertices = new TrivialBox3Generator().Generate().MakeDMesh().Vertices().ToArray();
             // The expected triangles list is resorted because the binary stl format
@@ -45,7 +46,7 @@ namespace geometry3sharp.Tests
                 new Index3i(7, 3, 2)
             };
 
-            DMesh3 readMesh = StandardMeshReader.ReadMesh(Path.Combine(ModelsDirectoryPath, "box_binary.stl"));
+            DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(Path.Combine(ModelsDirectoryPath, "box_binary.stl"));
 
             readMesh.Vertices().Should()
                 .BeEquivalentTo(expectedVertices,
