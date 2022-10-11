@@ -248,7 +248,7 @@ namespace g3
         /// </summary>
         static public IOReadResult ReadFile(Stream stream, string sExtension, ReadOptions options, IMeshBuilder builder)
         {
-            return ReadFileAsync(stream, sExtension, options, builder).ConfigureAwait(false).GetAwaiter().GetResult();
+            return ReadFileAsync(stream, sExtension, options, builder).GetAwaiter().GetResult();
         }
 
 
