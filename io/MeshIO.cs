@@ -50,20 +50,6 @@ namespace g3
         };
     }
 
-    public class IntBinaryReader
-    {
-        public static async Task<int> ReadIntAsync(Stream stream)
-        {
-            byte[] resultInBytes = new byte[4];
-            if (await stream.ReadAsync(resultInBytes, 0, resultInBytes.Length).ConfigureAwait(false) < 4)
-            {
-                throw new ArgumentException("It wasn't able to read the INT value out of the stream.");
-            }
-            int result = BitConverter.ToInt32(resultInBytes, 0);
-            return result;
-        }
-    }
-
     public struct IOReadResult
     {
         public IOCode code { get; set; }
