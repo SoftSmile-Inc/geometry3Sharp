@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace g3
@@ -32,9 +33,9 @@ namespace g3
 
 
 
-    public class BinaryG3Reader
+    public class BinaryG3Reader : IBinaryMeshReader
     {
-        public Task<IOReadResult> ReadAsync(Stream stream, IMeshBuilder builder)
+        public Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
         {
             using (var reader = new BinaryReader(stream))
             {

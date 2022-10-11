@@ -9,7 +9,7 @@ namespace g3
     // Parse OFF mesh format
     // https://en.wikipedia.org/wiki/OFF_(file_format)
     // 
-    class OFFReader
+    class OFFReader : IMeshReader
     {
         // connect to this to get warning messages
         public event ParsingMessagesHandler warningEvent;
@@ -18,7 +18,7 @@ namespace g3
         Dictionary<string, int> warningCount = new Dictionary<string, int>();
 
 
-        public async Task<IOReadResult> ReadAsync(TextReader reader, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             // format is:
             //

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace g3
@@ -26,7 +27,7 @@ namespace g3
     ///    DVector<short> colors = Builder.Metadata[0][STLReader.PerTriAttribMetadataName] as DVector<short>;
     /// (for DMesh3Builder, which is the only builder that supports Metadata)
     /// </summary>
-    public class STLReader
+    public class STLReader : IMeshReader, IBinaryMeshReader
     {
 
         public enum Strategy
@@ -120,27 +121,27 @@ namespace g3
             public short attrib;
         }
 
-        private static async Task<bool> TryReadBytesAsync(Stream stream, byte[] buffer, int count)
+        private static async Task<bool> TryReadBytesAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken = default)
         {
             int readBytes =
-                await stream.ReadAsync(buffer, offset: 0, count: count)
+                await stream.ReadAsync(buffer, offset: 0, count: count, cancellationToken)
                 .ConfigureAwait(false);
             if (readBytes != count)
                 return false;
             return true;
         }
 
-        private static async Task<int?> ReadInt32Async(Stream stream, byte[] buffer)
+        private static async Task<int?> ReadInt32Async(Stream stream, byte[] buffer, CancellationToken cancellationToken = default)
         {
             int readBytes =
-                await stream.ReadAsync(buffer, offset: 0, count: sizeof(int))
+                await stream.ReadAsync(buffer, offset: 0, count: sizeof(int), cancellationToken)
                     .ConfigureAwait(false);
             if (readBytes != sizeof(int))
                 return null;
             return BitConverter.ToInt32(buffer, 0);
         }
 
-        public async Task<IOReadResult> ReadBinaryStlAsync(Stream stream, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
         {
             if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
@@ -148,10 +149,10 @@ namespace g3
             // The buffer is always 80 bytes and it's not used
             const int headerSize = 80;
             byte[] buffer = new byte[headerSize];
-            if (!await TryReadBytesAsync(stream, buffer, headerSize).ConfigureAwait(false))
+            if (!await TryReadBytesAsync(stream, buffer, headerSize, cancellationToken).ConfigureAwait(false))
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have a header");
 
-            int? trianglesCount = await ReadInt32Async(stream, buffer).ConfigureAwait(false);
+            int? trianglesCount = await ReadInt32Async(stream, buffer, cancellationToken).ConfigureAwait(false);
             if (trianglesCount is null)
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have triangles count");
 
@@ -167,7 +168,7 @@ namespace g3
             {
                 for (int i = 0; i < trianglesCount.Value; ++i)
                 {
-                    if (!await TryReadBytesAsync(stream, buffer, triangleStructureSize).ConfigureAwait(false))
+                    if (!await TryReadBytesAsync(stream, buffer, triangleStructureSize, cancellationToken).ConfigureAwait(false))
                         return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
 
                     Marshal.Copy(buffer, 0, bufptr, triangleStructureSize);
@@ -196,7 +197,7 @@ namespace g3
             return new IOReadResult(IOCode.Ok, "");
         }
 
-        public async Task<IOReadResult> ReadTextStlAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);

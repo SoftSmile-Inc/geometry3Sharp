@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace g3
@@ -156,5 +157,13 @@ namespace g3
         IOWriteResult Write(BinaryWriter writer, List<WriteMesh> vMeshes, WriteOptions options);
     }
 
+    public interface IMeshReader
+    {
+        Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder);
+    }
 
+    public interface IBinaryMeshReader
+    {
+        Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
+    }
 }
