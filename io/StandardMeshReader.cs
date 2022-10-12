@@ -315,7 +315,7 @@ namespace g3
                         reader.MTLFileSearchPaths.Add(Path.GetDirectoryName(sFilename));
                     reader.warningEvent += messages;
 
-                    IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder).ConfigureAwait(false);
+                    IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
                     return result;
                 }
             }
@@ -329,7 +329,7 @@ namespace g3
         {
             OBJReader reader = new OBJReader();
             reader.warningEvent += messages;
-            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder)
+            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken)
                 .ConfigureAwait(false);
             return result;
         }
@@ -394,7 +394,7 @@ namespace g3
             reader.warningEvent += messages;
             IOReadResult result = (bIsBinary) ?
                 await reader.ReadAsync(stream, options, builder, cancellationToken).ConfigureAwait(false) :
-                await reader.ReadAsync(new StreamReader(stream), options, builder).ConfigureAwait(false);
+                await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
 
             return result;
         }
@@ -435,7 +435,7 @@ namespace g3
         {
             OFFReader reader = new OFFReader();
             reader.warningEvent += messages;
-            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder).ConfigureAwait(false);
+            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
             return result;
         }
     }

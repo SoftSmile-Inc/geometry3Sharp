@@ -197,7 +197,7 @@ namespace g3
             return new IOReadResult(IOCode.Ok, "");
         }
 
-        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
         {
             if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
@@ -223,7 +223,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0)
             {
-                string line = await reader.ReadLineAsync().ConfigureAwait(false);
+                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)

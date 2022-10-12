@@ -159,7 +159,7 @@ namespace g3
 
     public interface IMeshReader
     {
-        Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder);
+        Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
     }
 
     public interface IBinaryMeshReader
