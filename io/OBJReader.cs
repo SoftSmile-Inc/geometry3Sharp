@@ -76,7 +76,7 @@ namespace g3
 
 
 
-    public class OBJReader
+    public class OBJReader : IMeshReader
     {
         DVector<double> vPositions;
         DVector<float> vNormals;
