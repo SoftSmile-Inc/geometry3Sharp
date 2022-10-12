@@ -1,44 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace g3
 {
-	//
-	// Parse OFF mesh format
-	// https://en.wikipedia.org/wiki/OFF_(file_format)
-	// 
+    //
+    // Parse OFF mesh format
+    // https://en.wikipedia.org/wiki/OFF_(file_format)
+    // 
     class OFFReader : IMeshReader
     {
         // connect to this to get warning messages
-		public event ParsingMessagesHandler warningEvent;
+        public event ParsingMessagesHandler warningEvent;
 
         //int nWarningLevel = 0;      // 0 == no diagnostics, 1 == basic, 2 == crazy
         Dictionary<string, int> warningCount = new Dictionary<string, int>();
 
 
-        public IOReadResult Read(BinaryReader reader, ReadOptions options, IMeshBuilder builder)
+        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
         {
-            return new IOReadResult(IOCode.FormatNotSupportedError, "binary read not supported for OFF format");
-        }
+            // format is:
+            //
+            // OFF
+            // VCOUNT TCOUNT     (2 ints)
+            // x y z
+            // ...
+            // 3 va vb vc
+            // ...
+            //
 
-        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
-        {
-			// format is:
-			//
-			// OFF
-			// VCOUNT TCOUNT     (2 ints)
-			// x y z
-			// ...
-			// 3 va vb vc
-			// ...
-			//
-
-            string first_line = reader.ReadLine();
+            string first_line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
             if (first_line.StartsWith("OFF") == false)
                 return new IOReadResult(IOCode.FileParsingError, "ascii OFF file must start with OFF header");
 
@@ -46,17 +39,18 @@ namespace g3
             int nTriangleCount = 0;
 
             int nLines = 0;
-            while (reader.Peek() >= 0) {
-                string line = reader.ReadLine();
+            while (reader.Peek() >= 0)
+            {
+                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
                 nLines++;
-                string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
                     continue;
 
                 if (tokens[0].StartsWith("#"))
                     continue;
 
-                if ( tokens.Length != 3 ) 
+                if (tokens.Length != 3)
                     return new IOReadResult(IOCode.FileParsingError, "first non-comment line of OFF must be vertex/tri/edge counts, found: " + line);
                 nVertexCount = int.Parse(tokens[0]);
                 nTriangleCount = int.Parse(tokens[1]);
@@ -64,26 +58,26 @@ namespace g3
                 break;
             }
 
-
             builder.AppendNewMesh(false, false, false, false);
 
             int vi = 0;
-            while ( vi < nVertexCount && reader.Peek() > 0 ) {
-                string line = reader.ReadLine();
+            while (vi < nVertexCount && reader.Peek() > 0)
+            {
+                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
                 nLines++;
-                string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
                     continue;
 
                 if (tokens[0].StartsWith("#"))
                     continue;
 
-                if ( tokens.Length != 3 )
+                if (tokens.Length != 3)
                     emit_warning("found invalid OFF vertex line: " + line);
 
-                double x = Double.Parse(tokens[0]);
-                double y = Double.Parse(tokens[1]);
-                double z = Double.Parse(tokens[2]);
+                double x = double.Parse(tokens[0]);
+                double y = double.Parse(tokens[1]);
+                double z = double.Parse(tokens[2]);
                 builder.AppendVertex(x, y, z);
                 vi++;
             }
@@ -93,21 +87,22 @@ namespace g3
 
 
             int ti = 0;
-            while ( ti < nTriangleCount && reader.Peek() > 0 ) {
-                string line = reader.ReadLine();
+            while (ti < nTriangleCount && reader.Peek() > 0)
+            {
+                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
                 nLines++;
-                string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
                     continue;
 
                 if (tokens[0].StartsWith("#"))
                     continue;
 
-                if ( tokens.Length < 4 )
+                if (tokens.Length < 4)
                     emit_warning("found invalid OFF triangle line: " + line);
 
                 int nV = int.Parse(tokens[0]);
-                if ( nV != 3 )
+                if (nV != 3)
                     emit_warning("found non-triangle polygon in OFF, currently unsupported: " + line);
 
                 int a = int.Parse(tokens[1]);
@@ -119,11 +114,9 @@ namespace g3
             }
             if (ti < nTriangleCount)
                 emit_warning(string.Format("File specified {0} triangles but only found {1}", nTriangleCount, ti));
-            
+
             return new IOReadResult(IOCode.Ok, "");
         }
-
-       
 
         private void emit_warning(string sMessage)
         {
@@ -135,9 +128,7 @@ namespace g3
             else if (nCount == 10)
                 sMessage += " (additional message surpressed)";
 
-            var e = warningEvent;
-            if (e != null)
-                e(sMessage, null);
+            warningEvent?.Invoke(sMessage, null);
         }
 
     }

@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace g3
 {
@@ -34,7 +34,7 @@ namespace g3
 
     public class ReadOptions
     {
-		public bool ReadMaterials;
+        public bool ReadMaterials;
 
         // format readers will inevitably have their own settings, we
         // can use this to pass arguments to them
@@ -42,10 +42,11 @@ namespace g3
 
         public ReadOptions()
         {
-			ReadMaterials = false;
+            ReadMaterials = false;
         }
 
-        public static readonly ReadOptions Defaults = new ReadOptions() {
+        public static readonly ReadOptions Defaults = new ReadOptions()
+        {
             ReadMaterials = false
         };
     }
@@ -62,24 +63,14 @@ namespace g3
                 message = "(no message)";
         }
 
-		public static readonly IOReadResult Ok = new IOReadResult(IOCode.Ok, "");	
-	}
-
-
-
-    public interface IMeshReader
-    {
-        IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder);
-        IOReadResult Read(BinaryReader reader, ReadOptions options, IMeshBuilder builder);
+        public static readonly IOReadResult Ok = new IOReadResult(IOCode.Ok, "");
     }
-
-
 
     public struct IOWriteResult
     {
         public IOCode code { get; set; }
         public string message { get; set; }
-        public IOWriteResult( IOCode r, string s ) : this()
+        public IOWriteResult(IOCode r, string s) : this()
         {
             code = r;
             message = s;
@@ -87,26 +78,26 @@ namespace g3
                 message = "(no message)";
         }
 
-		public static readonly IOWriteResult Ok = new IOWriteResult(IOCode.Ok, "");
+        public static readonly IOWriteResult Ok = new IOWriteResult(IOCode.Ok, "");
     }
 
     public struct WriteOptions
     {
-		public bool bWriteBinary;        	// write binary format if supported (STL)
+        public bool bWriteBinary;           // write binary format if supported (STL)
 
-		public bool bPerVertexNormals;		// write per-vertex normals (OBJ)
-		public bool bPerVertexColors;		// write per-vertex colors (OBJ)
-		public bool bPerVertexUVs;			// write per-vertex UVs
-											// can be overridden by per-mesh UVs in WriteMesh
-		public bool bWriteGroups;			// write face groups (OBJ)
+        public bool bPerVertexNormals;      // write per-vertex normals (OBJ)
+        public bool bPerVertexColors;       // write per-vertex colors (OBJ)
+        public bool bPerVertexUVs;          // write per-vertex UVs
+                                            // can be overridden by per-mesh UVs in WriteMesh
+        public bool bWriteGroups;			// write face groups (OBJ)
 
-        public bool bCombineMeshes;     	// combine all input meshes into a single output mesh
-											// some STL readers do not handle multiple solids...
+        public bool bCombineMeshes;         // combine all input meshes into a single output mesh
+                                            // some STL readers do not handle multiple solids...
 
-		public int RealPrecisionDigits;		// number of digits of float precision (after decimal)
+        public int RealPrecisionDigits;     // number of digits of float precision (after decimal)
 
-		public bool bWriteMaterials;		// for OBJ, indicates that .mtl file should be written
-		public string MaterialFilePath;		// only used if bWriteMaterialFile = true
+        public bool bWriteMaterials;        // for OBJ, indicates that .mtl file should be written
+        public string MaterialFilePath;		// only used if bWriteMaterialFile = true
 
         public string groupNamePrefix;        // prefix for group names in OBJ files (default is "mmGroup")
         public Func<int, string> GroupNameF;  // if non-null, you can use this to generate your own group names
@@ -116,14 +107,15 @@ namespace g3
 
         public Func<string> AsciiHeaderFunc;    // if you define this, returned string will be written as header start of ascii formats
 
-        public static readonly WriteOptions Defaults = new WriteOptions() {
+        public static readonly WriteOptions Defaults = new WriteOptions()
+        {
             bWriteBinary = false,
             bPerVertexNormals = false,
             bPerVertexColors = false,
             bWriteGroups = false,
             bPerVertexUVs = false,
             bCombineMeshes = false,
-			bWriteMaterials = false,
+            bWriteMaterials = false,
             ProgressFunc = null,
 
             RealPrecisionDigits = 15       // double
@@ -142,27 +134,36 @@ namespace g3
         public IMesh Mesh;
         public string Name;         // supported by some formats
 
-		public List<GenericMaterial> Materials;		// set of materials (possibly) used in this mesh
-		public IIndexMap TriToMaterialMap;			// triangle index -> Materials list index
+        public List<GenericMaterial> Materials;     // set of materials (possibly) used in this mesh
+        public IIndexMap TriToMaterialMap;          // triangle index -> Materials list index
 
-		public DenseUVMesh UVs;  // separate UV layer (just one for now)
-								 // assumption is that # of triangles in this UV mesh is same as in Mesh
+        public DenseUVMesh UVs;  // separate UV layer (just one for now)
+                                 // assumption is that # of triangles in this UV mesh is same as in Mesh
 
-        public WriteMesh(IMesh mesh, string name = "") {
+        public WriteMesh(IMesh mesh, string name = "")
+        {
             Mesh = mesh;
             Name = name;
             UVs = null;
-			Materials = null;
-			TriToMaterialMap = null;
+            Materials = null;
+            TriToMaterialMap = null;
         }
     }
 
-    
+
     public interface IMeshWriter
     {
         IOWriteResult Write(TextWriter writer, List<WriteMesh> vMeshes, WriteOptions options);
         IOWriteResult Write(BinaryWriter writer, List<WriteMesh> vMeshes, WriteOptions options);
     }
 
+    public interface IMeshReader
+    {
+        Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
+    }
 
+    public interface IBinaryMeshReader
+    {
+        Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
+    }
 }
