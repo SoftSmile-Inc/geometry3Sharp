@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using g3;
 
 namespace gs
@@ -48,7 +49,7 @@ namespace gs
 
         double[] curvatures;
 
-        public bool Apply()
+        public bool Apply(ProgressCancel? progressCancel = null)
         {
             // do a simple fill
             SimpleHoleFiller simplefill = new SimpleHoleFiller(Mesh, FillLoop);
@@ -100,6 +101,7 @@ namespace gs
 
             // remesh up to target edge length, ideally gives us some triangles to work with
             RemesherPro remesh1 = new RemesherPro(fillmesh);
+            remesh1.Progress = progressCancel;
             remesh1.SmoothSpeedT = 1.0;
             MeshConstraintUtil.FixAllBoundaryEdges(remesh1);
             //remesh1.SetTargetEdgeLength(remesh_target_len / 2);       // would this speed things up? on large regions?
@@ -119,11 +121,15 @@ namespace gs
             int zero_collapse_passes = 0;
             int collapse_passes = 0;
             while (collapse_passes++ < 20 && zero_collapse_passes < 2) {
+                if (progressCancel != null && progressCancel.Cancelled())
+                    return false;
 
                 // collapse pass
                 int NE = fillmesh.MaxEdgeID;
                 int collapses = 0;
                 for (int ei = 0; ei < NE; ++ei) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsEdge(ei) == false || fillmesh.IsBoundaryEdge(ei))
                         continue;
                     Index2i ev = fillmesh.GetEdgeV(ei);
@@ -149,6 +155,8 @@ namespace gs
                 NE = fillmesh.MaxEdgeID;
                 Vector3d n1, n2, on1, on2;
                 for (int ei = 0; ei < NE; ++ei) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsEdge(ei) == false || fillmesh.IsBoundaryEdge(ei))
                         continue;
                     bool do_flip = false;

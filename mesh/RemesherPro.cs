@@ -130,7 +130,7 @@ namespace gs
             var saveMode = this.ProjectionMode;
             for (int k = 0; k < nMaxIterations - 1; ++k) {
                 if (Cancelled())
-                    break;
+                    return;
                 ProjectionMode = (k % 2 == 0) ? TargetProjectionMode.NoProjection : saveMode;
                 RemeshIteration();
             }
