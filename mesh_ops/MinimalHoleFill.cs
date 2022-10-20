@@ -75,7 +75,10 @@ namespace gs
             boundaryv = new HashSet<int>(MeshIterators.BoundaryEdgeVertices(fillmesh));
             exterior_angle_sums = new Dictionary<int, double>();
             if (IgnoreBoundaryTriangles == false) {
-                foreach (int sub_vid in boundaryv) {
+                foreach (int sub_vid in boundaryv)
+                {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     double angle_sum = 0;
                     int base_vid = regionop.Region.MapVertexToBaseMesh(sub_vid);
                     foreach (int tid in regionop.BaseMesh.VtxTrianglesItr(base_vid)) {
@@ -107,7 +110,8 @@ namespace gs
             //remesh1.SetTargetEdgeLength(remesh_target_len / 2);       // would this speed things up? on large regions?
             //remesh1.FastestRemesh();
             remesh1.SetTargetEdgeLength(remesh_target_len);
-            remesh1.FastestRemesh();
+            if (!remesh1.FastestRemesh())
+                return false;
 
             /*
              * first round: collapse to minimal mesh, while flipping to try to 
@@ -216,6 +220,8 @@ namespace gs
             while ( flatter_passes++ < 40 && zero_flips_passes < 2 && remaining_edges.Count() > 0 && DO_FLATTER_PASS) {
                 zero_flips_passes++;
                 foreach (int ei in remaining_edges) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsBoundaryEdge(ei))
                         continue;
 
@@ -266,6 +272,8 @@ namespace gs
                  */
                 while (curvature_passes++ < 40 && remaining_edges.Count() > 0 && DO_CURVATURE_PASS) {
                     foreach (int ei in remaining_edges) {
+                        if (progressCancel != null && progressCancel.Cancelled())
+                            return false;
                         if (fillmesh.IsBoundaryEdge(ei))
                             continue;
 
@@ -316,6 +324,8 @@ namespace gs
                 while (remaining_edges.Count() > 0 && area_passes < 20) {
                     area_passes++;
                     foreach (int ei in remaining_edges) {
+                        if (progressCancel != null && progressCancel.Cancelled())
+                            return false;
                         if (fillmesh.IsBoundaryEdge(ei))
                             continue;
 

@@ -96,7 +96,7 @@ namespace gs
         /// <summary>
         /// Converge on remeshed result as quickly as possible
         /// </summary>
-        public void FastestRemesh(int nMaxIterations = 25, bool bDoFastSplits = true)
+        public bool FastestRemesh(int nMaxIterations = 25, bool bDoFastSplits = true)
         {
             ResetQueue();
 
@@ -108,7 +108,7 @@ namespace gs
             int max_fastsplits = nMaxIterations;
             if (bDoFastSplits) {
                 if (Cancelled())
-                    return;
+                    return false;
 
                 bool bContinue = true;
                 while ( bContinue ) {
@@ -118,7 +118,7 @@ namespace gs
                     if ((double)nSplits / (double)mesh.EdgeCount < 0.01)
                         bContinue = false;
                     if (Cancelled())
-                        return;
+                        return false;
                 };
                 ResetQueue();
             }
@@ -130,7 +130,7 @@ namespace gs
             var saveMode = this.ProjectionMode;
             for (int k = 0; k < nMaxIterations - 1; ++k) {
                 if (Cancelled())
-                    return;
+                    return false;
                 ProjectionMode = (k % 2 == 0) ? TargetProjectionMode.NoProjection : saveMode;
                 RemeshIteration();
             }
@@ -139,9 +139,9 @@ namespace gs
             ProjectionMode = saveMode;
 
             if (Cancelled())
-                return;
+                return false;
 
-            RemeshIteration();
+            return RemeshIteration();
         }
 
 
@@ -334,10 +334,10 @@ namespace gs
 
 
 
-        public virtual void RemeshIteration()
+        public virtual bool RemeshIteration()
         {
             if (mesh.TriangleCount == 0)    // badness if we don't catch this...
-                return;
+                return false;
 
             begin_pass();
 
@@ -364,7 +364,7 @@ namespace gs
             int processedLastPass = 0;
             foreach (int cur_eid in edgesItr) {
                 if (Cancelled())
-                    return;
+                    return false;
 
                 if (mesh.IsEdge(cur_eid)) {
                     Index2i ev = mesh.GetEdgeV(cur_eid);
@@ -400,7 +400,7 @@ namespace gs
             //System.Console.WriteLine("   flips {0}  splits {1}  collapses {2}", flips, splits, collapes);
 
             if (Cancelled())
-                return;
+                return false;
 
             begin_smooth();
             if (EnableSmoothing && SmoothSpeedT > 0) {
@@ -410,15 +410,19 @@ namespace gs
             end_smooth();
 
             if (Cancelled())
-                return;
+                return false;
 
             begin_project();
             if (ProjectionTarget != null && ProjectionMode == TargetProjectionMode.AfterRefinement) {
                 //FullProjectionPass();
 
                 if (UseFaceAlignedProjection) {
-                    for ( int i = 0; i < FaceProjectionPassesPerIteration; ++i )
+                    for (int i = 0; i < FaceProjectionPassesPerIteration; ++i)
+                    {
+                        if (Cancelled())
+                            return false;
                         TrackedFaceProjectionPass();
+                    }
                 } else {
                     TrackedProjectionPass(EnableParallelProjection);
                 }
@@ -427,6 +431,7 @@ namespace gs
             end_project();
 
             end_pass();
+            return true;
         }
 
 
