@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using g3;
 
 namespace gs
@@ -48,7 +49,7 @@ namespace gs
 
         double[] curvatures;
 
-        public bool Apply()
+        public bool Apply(ProgressCancel? progressCancel = null)
         {
             // do a simple fill
             SimpleHoleFiller simplefill = new SimpleHoleFiller(Mesh, FillLoop);
@@ -74,7 +75,10 @@ namespace gs
             boundaryv = new HashSet<int>(MeshIterators.BoundaryEdgeVertices(fillmesh));
             exterior_angle_sums = new Dictionary<int, double>();
             if (IgnoreBoundaryTriangles == false) {
-                foreach (int sub_vid in boundaryv) {
+                foreach (int sub_vid in boundaryv)
+                {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     double angle_sum = 0;
                     int base_vid = regionop.Region.MapVertexToBaseMesh(sub_vid);
                     foreach (int tid in regionop.BaseMesh.VtxTrianglesItr(base_vid)) {
@@ -100,12 +104,14 @@ namespace gs
 
             // remesh up to target edge length, ideally gives us some triangles to work with
             RemesherPro remesh1 = new RemesherPro(fillmesh);
+            remesh1.Progress = progressCancel;
             remesh1.SmoothSpeedT = 1.0;
             MeshConstraintUtil.FixAllBoundaryEdges(remesh1);
             //remesh1.SetTargetEdgeLength(remesh_target_len / 2);       // would this speed things up? on large regions?
             //remesh1.FastestRemesh();
             remesh1.SetTargetEdgeLength(remesh_target_len);
-            remesh1.FastestRemesh();
+            if (!remesh1.FastestRemesh())
+                return false;
 
             /*
              * first round: collapse to minimal mesh, while flipping to try to 
@@ -119,11 +125,15 @@ namespace gs
             int zero_collapse_passes = 0;
             int collapse_passes = 0;
             while (collapse_passes++ < 20 && zero_collapse_passes < 2) {
+                if (progressCancel != null && progressCancel.Cancelled())
+                    return false;
 
                 // collapse pass
                 int NE = fillmesh.MaxEdgeID;
                 int collapses = 0;
                 for (int ei = 0; ei < NE; ++ei) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsEdge(ei) == false || fillmesh.IsBoundaryEdge(ei))
                         continue;
                     Index2i ev = fillmesh.GetEdgeV(ei);
@@ -149,6 +159,8 @@ namespace gs
                 NE = fillmesh.MaxEdgeID;
                 Vector3d n1, n2, on1, on2;
                 for (int ei = 0; ei < NE; ++ei) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsEdge(ei) == false || fillmesh.IsBoundaryEdge(ei))
                         continue;
                     bool do_flip = false;
@@ -208,6 +220,8 @@ namespace gs
             while ( flatter_passes++ < 40 && zero_flips_passes < 2 && remaining_edges.Count() > 0 && DO_FLATTER_PASS) {
                 zero_flips_passes++;
                 foreach (int ei in remaining_edges) {
+                    if (progressCancel != null && progressCancel.Cancelled())
+                        return false;
                     if (fillmesh.IsBoundaryEdge(ei))
                         continue;
 
@@ -258,6 +272,8 @@ namespace gs
                  */
                 while (curvature_passes++ < 40 && remaining_edges.Count() > 0 && DO_CURVATURE_PASS) {
                     foreach (int ei in remaining_edges) {
+                        if (progressCancel != null && progressCancel.Cancelled())
+                            return false;
                         if (fillmesh.IsBoundaryEdge(ei))
                             continue;
 
@@ -308,6 +324,8 @@ namespace gs
                 while (remaining_edges.Count() > 0 && area_passes < 20) {
                     area_passes++;
                     foreach (int ei in remaining_edges) {
+                        if (progressCancel != null && progressCancel.Cancelled())
+                            return false;
                         if (fillmesh.IsBoundaryEdge(ei))
                             continue;
 
