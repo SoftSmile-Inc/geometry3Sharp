@@ -223,7 +223,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = await reader.ReadLineAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)

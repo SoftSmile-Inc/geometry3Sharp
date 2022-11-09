@@ -31,7 +31,7 @@ namespace g3
             // ...
             //
 
-            string first_line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+            string first_line = await reader.ReadLineAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
             if (first_line.StartsWith("OFF") == false)
                 return new IOReadResult(IOCode.FileParsingError, "ascii OFF file must start with OFF header");
 
@@ -41,7 +41,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = await reader.ReadLineAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
@@ -63,7 +63,7 @@ namespace g3
             int vi = 0;
             while (vi < nVertexCount && reader.Peek() > 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = await reader.ReadLineAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
@@ -89,7 +89,7 @@ namespace g3
             int ti = 0;
             while (ti < nTriangleCount && reader.Peek() > 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = await reader.ReadLineAsync().WaitAsync(cancellationToken).ConfigureAwait(false);
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
