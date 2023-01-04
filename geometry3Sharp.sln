@@ -5,6 +5,8 @@ VisualStudioVersion = 17.4.32804.182
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "geometry3Sharp", "geometry3Sharp.csproj", "{8A79796C-CF05-44EA-80B2-B30213DF11DB}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "geometry3sharp.Tests", "test\geometry3sharp.Tests.csproj", "{4CECAD72-E022-46C0-AF9A-02B46BA4401F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{8A79796C-CF05-44EA-80B2-B30213DF11DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A79796C-CF05-44EA-80B2-B30213DF11DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A79796C-CF05-44EA-80B2-B30213DF11DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CECAD72-E022-46C0-AF9A-02B46BA4401F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CECAD72-E022-46C0-AF9A-02B46BA4401F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CECAD72-E022-46C0-AF9A-02B46BA4401F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CECAD72-E022-46C0-AF9A-02B46BA4401F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -29,14 +29,20 @@
     <PackageId>geometry3Sharp</PackageId>
   </PropertyGroup>
 
+
   <ItemGroup>
     <Compile Remove="Properties\AssemblyInfo.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  
+  <ItemGroup>
     <!--Remove the tests directory because it's a part of another project-->
-    <Compile Remove="test\*.*" />
+    <Compile Remove="test\**" />
+    <EmbeddedResource Remove="test\**" />
+    <None Remove="test\**" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+      <TargetFramework>net6.0</TargetFramework>
+      <Nullable>enable</Nullable>
+      <IsPackable>false</IsPackable>
+      <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+      <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  
+      <!-- Workaround for https://github.com/dotnet/roslyn/issues/41640 -->
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    </PropertyGroup>
+  
+    <ItemGroup>
+      <PackageReference Include="FluentAssertions" Version="[5.10.3]" />
+      <PackageReference Include="xunit" Version="[2.4.1]" />
+      <PackageReference Include="xunit.runner.visualstudio" Version="[2.4.3]">
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        <PrivateAssets>all</PrivateAssets>
+      </PackageReference>
+      <PackageReference Include="xunit.analyzers" Version="[1.0.0]" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="[16.5.0]" />
+    </ItemGroup>
+  
+    <ItemGroup>
+      <ProjectReference Include="..\geometry3Sharp.csproj" />
+    </ItemGroup>
+  
+  </Project>
+  
