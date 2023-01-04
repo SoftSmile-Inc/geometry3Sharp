@@ -7,7 +7,7 @@ on:
     branches:
       - softsmile
 jobs:
-  build_geometry3Sharp_netstandard:
+  build_geometry3Sharp:
     name: "Build geometry3sharp"
     runs-on: ubuntu-20.04
     steps:
@@ -17,4 +17,4 @@ jobs:
         uses: actions/setup-dotnet@v1.8.2
         with:
           dotnet-version: 6.0.400
-      - run: dotnet build ./geometry3Sharp_netstandard.csproj
+      - run: dotnet build ./geometry3Sharp.csproj
