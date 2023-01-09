@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Runtime.Serialization;
-using System.Text;
-
-#if G3_USING_UNITY
-using UnityEngine;
-#endif
 
 namespace g3
 {
@@ -322,29 +315,6 @@ namespace g3
         public readonly string ToString(string fmt) {
             return string.Format("{0} {1} {2}", x.ToString(fmt), y.ToString(fmt), z.ToString(fmt));
         }
-
-
-
-
-
-#if G3_USING_UNITY
-        public static implicit operator Vector3f(UnityEngine.Vector3 v)
-        {
-            return new Vector3f(v.x, v.y, v.z);
-        }
-        public static implicit operator Vector3(Vector3f v)
-        {
-            return new Vector3(v.x, v.y, v.z);
-        }
-        public static implicit operator Color(Vector3f v)
-        {
-            return new Color(v.x, v.y, v.z, 1.0f);
-        }
-        public static implicit operator Vector3f(Color c)
-        {
-            return new Vector3f(c.r, c.g, c.b);
-        }
-#endif
 
     }
 }

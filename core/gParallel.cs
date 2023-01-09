@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-
-#if !(NET_2_0 || NET_2_0_SUBSET)
 using System.Threading.Tasks;
-#endif
 
 namespace g3
 {
@@ -20,11 +15,7 @@ namespace g3
         }
         public static void ForEach<T>( IEnumerable<T> source, Action<T> body )
         {
-#if G3_USING_UNITY && (NET_2_0 || NET_2_0_SUBSET)
-            for_each<T>(source, body);
-#else
             Parallel.ForEach<T>(source, body);
-#endif
         }
 
 
@@ -71,58 +62,6 @@ namespace g3
                 blockF(k, k+remaining-1);
             }
         }
-
-
-
-        // parallel for-each that will work on .net 3.5 (maybe?)
-        // adapted from https://www.microsoft.com/en-us/download/details.aspx?id=19222
-        static void for_each<T>( IEnumerable<T> source, Action<T> body )
-        {
-            int numProcs = Environment.ProcessorCount;
-            int remainingWorkItems = numProcs;
-            Exception last_exception = null;
-            using (var enumerator = source.GetEnumerator()) {
-                using (ManualResetEvent mre = new ManualResetEvent(false)) {
-                    // Create each of the work items.
-                    for (int p = 0; p < numProcs; p++) {
-                        ThreadPool.QueueUserWorkItem(delegate {
-                            // Iterate until there's no more work.
-                            while (true) {
-                                // Get the next item under a lock,
-                                // then process that item.
-                                T nextItem;
-                                lock (enumerator) {
-                                    if (!enumerator.MoveNext())
-                                        break;
-                                    nextItem = enumerator.Current;
-                                }
-
-                                // [RMS] added try/catch here because if body() throws an exception
-                                // then one thread breaks out of loop, and somehow we end up hung forever.
-                                // (Maybe the WaitOne() on other threads never finishes?)
-                                // Anyway, we will just hold onto the exception and throw it at the end.
-                                try {
-                                    body(nextItem);
-                                } catch (Exception e) {
-                                    last_exception = e;
-                                    break;
-                                }
-                            }
-                            if (Interlocked.Decrement(ref remainingWorkItems) == 0)
-                                mre.Set();
-                        });
-                    }
-                    // Wait for all threads to complete.
-                    mre.WaitOne();
-                }
-            }
-
-            // pass on last exception thrown by enumerables
-            if (last_exception != null)
-                throw last_exception;
-        }
-
-
     }
 
 
@@ -270,41 +209,4 @@ namespace g3
             }
         }
     }
-
-
-
-
-#if G3_USING_UNITY && (NET_2_0 || NET_2_0_SUBSET)
-
-    /*
-     * .NET 3.5 (default in Unity) does not have SpinLock object, which we
-     * are using in a few places. So provide a wrapper around Monitor.
-     * Note that this is class and SpinLock is a struct, so this may cause
-     * disasters, but at least things build...
-     */
-    public class SpinLock
-    {
-        object o;
-        public SpinLock()
-        {
-            o = new object();
-        }
-
-        public void Enter(ref bool entered)
-        {
-            Monitor.Enter(o);
-            entered = true;
-        }
-
-        public void Exit()
-        {
-            Monitor.Exit(o);
-        }
-
-    }
-
-
-#endif
-
-
 }
