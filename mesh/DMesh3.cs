@@ -197,23 +197,35 @@ namespace g3
         {
         }
 
-
-        public struct CompactInfo
+        public readonly struct InPlaceCompactInfo
         {
-            public IIndexMap MapV;
-            public IIndexMap MapT;
+            public readonly IIndexMap MapV;
+            public readonly IIndexMap MapT;
 
-            public CompactInfo(IIndexMap mapV, IIndexMap mapT)
+            public InPlaceCompactInfo(IIndexMap mapV, IIndexMap mapT)
             {
                 MapV = mapV;
                 MapT = mapT;
             }
         }
-        public CompactInfo CompactCopy(DMesh3 copy, bool bNormals = true, bool bColors = true, bool bUVs = true)
+
+        public readonly struct CopyCompactInfo
+        {
+            public readonly IIndexMap MapV;
+            public readonly IIndexMap MapT;
+
+            public CopyCompactInfo(IIndexMap mapV, IIndexMap mapT)
+            {
+                MapV = mapV;
+                MapT = mapT;
+            }
+        }
+
+        public CopyCompactInfo CompactCopy(DMesh3 copy, bool bNormals = true, bool bColors = true, bool bUVs = true)
         {
             if ( copy.IsCompact ) {
                 Copy(copy, bNormals, bColors, bUVs);
-                return new CompactInfo(mapV: new IdentityIndexMap(), mapT: new IdentityIndexMap());
+                return new CopyCompactInfo(mapV: new IdentityIndexMap(), mapT: new IdentityIndexMap());
             }
 
             vertices = new DVector<double>();
@@ -258,7 +270,7 @@ namespace g3
                 max_group_id = Math.Max(max_group_id, g+1);
             }
 
-            return new CompactInfo(
+            return new CopyCompactInfo(
                 mapV: new IndexMap(mapV, this.MaxVertexID),
                 mapT: new IndexMap(mapT, this.MaxTriangleID)
                 );
@@ -293,7 +305,7 @@ namespace g3
         /// Copy IMesh into this mesh. Currently always compacts.
         /// [TODO] if we get dense hint, we could be smarter w/ vertex map, etc
         /// </summary>
-        public CompactInfo Copy(IMesh copy, MeshHints hints, bool bNormals = true, bool bColors = true, bool bUVs = true)
+        public CopyCompactInfo Copy(IMesh copy, MeshHints hints, bool bNormals = true, bool bColors = true, bool bUVs = true)
         {
             vertices = new DVector<double>();
             vertex_edges = new SmallListSet();
@@ -334,7 +346,7 @@ namespace g3
                 max_group_id = Math.Max(max_group_id, g + 1);
             }
 
-            return new CompactInfo(
+            return new CopyCompactInfo(
                 mapV: new IndexMap(mapV, this.MaxVertexID),
                 mapT: new IndexMap(mapT, this.MaxTriangleID)
                 );
@@ -2309,11 +2321,11 @@ namespace g3
         /// 
         /// If bComputeCompactInfo=false, the returned CompactInfo is not initialized
         /// </summary>
-        public CompactInfo CompactInPlace(bool bComputeCompactInfo = false)
+        public InPlaceCompactInfo CompactInPlace(bool bComputeCompactInfo = false)
         {
             IndexMap mapV = (bComputeCompactInfo) ? new IndexMap(MaxVertexID, VertexCount) : null;
             IndexMap mapT = (bComputeCompactInfo) ? new IndexMap(MaxTriangleID, TriangleCount) : null;
-            CompactInfo ci = new CompactInfo(mapV, mapT);
+            InPlaceCompactInfo ci = new InPlaceCompactInfo(mapV, mapT);
 
             // find first free vertex, and last used vertex
             int iLastV = MaxVertexID - 1, iCurV = 0;
