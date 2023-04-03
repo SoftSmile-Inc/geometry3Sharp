@@ -2211,6 +2211,10 @@ namespace g3
             get { return triangles; }
             set { triangles = value; }
         }
+        public DVector<int> TriangleEdgesBuffer {
+            get { return triangle_edges; }
+            set { triangle_edges = value; }
+        }
         public RefCountVector TrianglesRefCounts {
             get { return triangles_refcount; }
             set { triangles_refcount = value; }
