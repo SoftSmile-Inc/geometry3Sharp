@@ -197,6 +197,10 @@ namespace g3
         {
         }
 
+        /// <summary>
+        /// Represents the result of DMesh3.CompactInPlace, which returns mapping that should be interpreted specifically:
+        /// it returns IndexMap.InvalidIndex for the vertices/triangles that did not change their Id (position in array)
+        /// </summary>
         public readonly struct InPlaceCompactInfo
         {
             public readonly IIndexMap MapV;
@@ -207,8 +211,27 @@ namespace g3
                 MapV = mapV;
                 MapT = mapT;
             }
+
+            public int GetCompactVertexId(int originalVid)
+            {
+                int compactedVid = MapV[originalVid];
+                if (compactedVid == IndexMap.InvalidIndex) // in result of DMesh.CompactInPlace we can get IndexMap.InvalidIndex for the vertices that did not change their Id
+                    return originalVid;
+                return compactedVid;
+            }
+
+            public int GetCompactTriangleId(int originalTid)
+            {
+                int compactedTid = MapT[originalTid];
+                if (compactedTid == IndexMap.InvalidIndex) // in result of DMesh.CompactInPlace we can get IndexMap.InvalidIndex for the triangles that did not change their Id
+                    return originalTid;
+                return compactedTid;
+            }
         }
 
+        /// <summary>
+        /// Represents the result of DMesh3.CompactCopy, which returns normal mapping (as opposed to DMesh3.CompactInPlace).
+        /// </summary>
         public readonly struct CopyCompactInfo
         {
             public readonly IIndexMap MapV;
@@ -218,6 +241,22 @@ namespace g3
             {
                 MapV = mapV;
                 MapT = mapT;
+            }
+
+            public int GetCompactVertexId(int originalVid)
+            {
+                int compactedVid = MapV[originalVid];
+                if (compactedVid == IndexMap.InvalidIndex) // in result of DMesh.CompactCopy we should not have IndexMap.InvalidIndex for valid vertices
+                    throw new Exception($"Vertex {originalVid} did not exist or was lost in compactification");
+                return compactedVid;
+            }
+
+            public int GetCompactTriangleId(int originalTid)
+            {
+                int compactedTid = MapT[originalTid];
+                if (compactedTid == IndexMap.InvalidIndex) // in result of DMesh.CompactCopy we should not have IndexMap.InvalidIndex for valid triangles
+                    throw new Exception($"Triangle {originalTid} did not exist or was lost in compactification");
+                return compactedTid;
             }
         }
 
