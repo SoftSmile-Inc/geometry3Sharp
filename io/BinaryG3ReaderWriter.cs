@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace g3
 {
@@ -35,12 +33,12 @@ namespace g3
 
     public class BinaryG3Reader : IBinaryMeshReader
     {
-        public Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
+        public IOReadResult Read(Stream stream, ReadOptions options, IMeshBuilder builder)
         {
             using (var reader = new BinaryReader(stream))
             {
                 int nMeshes = reader.ReadInt32();
-                if (nMeshes != 4)
+                if (nMeshes <= 0)
                 {
                     throw new DataMisalignedException("BinaryG3Writer.ReadAsync: there should have been an 1-byte-integer representing the number of DMesh3 meshes.");
                 }
@@ -52,7 +50,7 @@ namespace g3
                     builder.AppendNewMesh(m);
                 }
 
-                return Task.FromResult(new IOReadResult(IOCode.Ok, ""));
+                return new IOReadResult(IOCode.Ok, "");
             }
         }
     }

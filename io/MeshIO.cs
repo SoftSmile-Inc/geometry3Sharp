@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace g3
 {
@@ -159,11 +158,11 @@ namespace g3
 
     public interface IMeshReader
     {
-        Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
+        IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder);
     }
 
     public interface IBinaryMeshReader
     {
-        Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default);
+        IOReadResult Read(Stream stream, ReadOptions options, IMeshBuilder builder);
     }
 }

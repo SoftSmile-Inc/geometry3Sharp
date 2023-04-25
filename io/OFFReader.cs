@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace g3
 {
@@ -19,7 +18,7 @@ namespace g3
         Dictionary<string, int> warningCount = new Dictionary<string, int>();
 
 
-        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
+        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             // format is:
             //
@@ -31,7 +30,7 @@ namespace g3
             // ...
             //
 
-            string first_line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+            string first_line = reader.ReadLine();
             if (first_line.StartsWith("OFF") == false)
                 return new IOReadResult(IOCode.FileParsingError, "ascii OFF file must start with OFF header");
 
@@ -41,7 +40,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = reader.ReadLine();
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
@@ -63,7 +62,7 @@ namespace g3
             int vi = 0;
             while (vi < nVertexCount && reader.Peek() > 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = reader.ReadLine();
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
@@ -89,7 +88,7 @@ namespace g3
             int ti = 0;
             while (ti < nTriangleCount && reader.Peek() > 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = reader.ReadLine();
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)
