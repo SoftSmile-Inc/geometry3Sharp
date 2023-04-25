@@ -69,7 +69,7 @@ namespace g3
         /// </summary>
         public bool SupportsFormat(string sExtension)
         {
-            foreach (var reader in Readers)
+            foreach (MeshFormatReader reader in Readers)
                 foreach (string ext in reader.SupportedExtensions)
                     if (ext.Equals(sExtension, StringComparison.OrdinalIgnoreCase))
                         return true;
@@ -95,7 +95,11 @@ namespace g3
         /// </summary>
         public IOReadResult Read(string sFilename, ReadOptions options)
         {
-            return ReadAsync(sFilename, options).GetAwaiter().GetResult();
+            string? fileExtension = GetExtension(sFilename);
+            if (fileExtension is null)
+                return new IOReadResult(IOCode.InvalidFilenameError, $"The extension of '{fileExtension}' is not parsed");
+            using FileStream fileStream = File.OpenRead(sFilename);
+            return Read(fileStream, fileExtension, options);
         }
 
         /// <summary>
@@ -103,58 +107,38 @@ namespace g3
         /// </summary>
         public async Task<IOReadResult> ReadAsync(string sFilename, ReadOptions options, CancellationToken cancellationToken = default)
         {
-            if (MeshBuilder == null)
-                return new IOReadResult(IOCode.GenericReaderError, "MeshBuilder is null!");
-
-            string sExtension = Path.GetExtension(sFilename);
-            if (sExtension.Length < 2)
-            {
-                return new IOReadResult(IOCode.InvalidFilenameError, "filename " + sFilename + " does not contain valid extension");
-            }
-            sExtension = sExtension.Substring(1);
-
-            MeshFormatReader useReader = null;
-            foreach (MeshFormatReader reader in Readers)
-            {
-                foreach (string ext in reader.SupportedExtensions)
-                {
-                    if (ext.Equals(sExtension, StringComparison.OrdinalIgnoreCase))
-                        useReader = reader;
-                }
-                if (useReader != null)
-                    break;
-            }
-            if (useReader == null)
-                return new IOReadResult(IOCode.UnknownFormatError, "format " + sExtension + " is not supported");
-
-            // save current culture
-            CultureInfo current_culture = Thread.CurrentThread.CurrentCulture;
-
-            try
-            {
-                // push invariant culture for write
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-
-                IOReadResult result = useReader.ReadFile(sFilename, MeshBuilder, options, on_warning);
-
-                // restore culture
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = current_culture;
-
-                return result;
-
-            }
-            catch (Exception e)
-            {
-                // restore culture
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = current_culture;
-
-                return new IOReadResult(IOCode.GenericReaderError, "Unknown error : exception : " + e.Message);
-            }
+            string? fileExtension = GetExtension(sFilename);
+            if (fileExtension is null)
+                return new IOReadResult(IOCode.InvalidFilenameError, $"The extension of '{fileExtension}' is not parsed");
+            using FileStream fileStream = File.OpenRead(sFilename);
+            byte[] buffer = new byte[fileStream.Length];
+            using MemoryStream memoryStream = new MemoryStream(buffer);
+            int readBytes = await fileStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (readBytes != buffer.Length)
+                throw new Exception("Looks like the buffer length is not equal to the stream length");
+            return Read(memoryStream, fileExtension, options);
         }
 
+        private static string? GetExtension(string filename)
+        {
+            string extensionWithDot = Path.GetExtension(filename);
+            if (extensionWithDot.Length < 2)
+                return null;
+            return extensionWithDot[1..];
+        }
+
+        /// <summary>
+        /// Read mesh file at path, with given Options. Result is stored in MeshBuilder parameter
+        /// </summary>
+        public async Task<IOReadResult> ReadAsync(Stream stream, string sExtension, ReadOptions options, CancellationToken cancellationToken = default)
+        {
+            byte[] buffer = new byte[stream.Length];
+            int readBytes = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            if (readBytes != buffer.Length)
+                throw new Exception("Looks like the buffer length is not equal to the stream length");
+            using var memoryStream = new MemoryStream(buffer);
+            return Read(memoryStream, sExtension, options);
+        }
 
         /// <summary>
         /// Read mesh file at path, with given Options. Result is stored in MeshBuilder parameter
@@ -226,7 +210,9 @@ namespace g3
         /// </summary>
         static public IOReadResult ReadFile(string sFilename, ReadOptions options, IMeshBuilder builder)
         {
-            return ReadFileAsync(sFilename, options, builder).GetAwaiter().GetResult();
+            StandardMeshReader reader = new StandardMeshReader();
+            reader.MeshBuilder = builder;
+            return reader.Read(sFilename, options);
         }
 
         /// <summary>
@@ -234,11 +220,11 @@ namespace g3
         /// here because the reader is not returned
         /// </summary>
         static public async Task<IOReadResult> ReadFileAsync
-            (Stream stream, string sExtension, ReadOptions options, IMeshBuilder builder)
+            (Stream stream, string sExtension, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
         {
             StandardMeshReader reader = new StandardMeshReader();
             reader.MeshBuilder = builder;
-            return reader.Read(stream, sExtension, options);
+            return await reader.ReadAsync(stream, sExtension, options, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -247,7 +233,9 @@ namespace g3
         /// </summary>
         static public IOReadResult ReadFile(Stream stream, string sExtension, ReadOptions options, IMeshBuilder builder)
         {
-            return ReadFileAsync(stream, sExtension, options, builder).GetAwaiter().GetResult();
+            StandardMeshReader reader = new StandardMeshReader();
+            reader.MeshBuilder = builder;
+            return reader.Read(stream, sExtension, options);
         }
 
 
@@ -269,12 +257,7 @@ namespace g3
         static public async Task<DMesh3> ReadMeshAsync(Stream stream, string sExtension, CancellationToken cancellationToken = default)
         {
             DMesh3Builder builder = new DMesh3Builder();
-            byte[] buffer = new byte[stream.Length];
-            int readBytes = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
-            if (readBytes != buffer.Length)
-                throw new Exception("Looks like the buffer length is not equal to the stream length");
-            using var memoryStream = new MemoryStream(buffer);
-            IOReadResult result = ReadFile(memoryStream, sExtension, ReadOptions.Defaults, builder);
+            IOReadResult result = await ReadFileAsync(stream, sExtension, ReadOptions.Defaults, builder, cancellationToken).ConfigureAwait(false);
             return (result.code == IOCode.Ok) ? builder.Meshes[0] : null;
         }
 
@@ -333,7 +316,7 @@ namespace g3
         {
             OBJReader reader = new OBJReader();
             reader.warningEvent += messages;
-            return reader.Read(new StreamReader(stream), options, builder);;
+            return reader.Read(new StreamReader(stream), options, builder);
         }
     }
 

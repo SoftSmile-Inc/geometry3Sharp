@@ -123,6 +123,63 @@ namespace geometry3sharp.Tests
             AssertMeshComponents(readMesh, boxMesh.Vertices(), expectedTrianlges);
         }
 
+        [Fact]
+        public async Task ShouldReadObjAsyncVerticesAndTriangles()
+        {
+            using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.obj");
+            DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "obj");
+
+            DMesh3 boxMesh = BoxMesh.Value;
+            AssertMeshComponents(readMesh, boxMesh.Vertices(), boxMesh.Triangles());
+        }
+
+        [Fact]
+        public async Task ShouldReadOffAsyncVerticesAndTriangles()
+        {
+            using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.off");
+            DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "off");
+
+            DMesh3 boxMesh = BoxMesh.Value;
+            AssertMeshComponents(readMesh, boxMesh.Vertices(), boxMesh.Triangles());
+        }
+
+        [Fact]
+        public async Task ShouldReadGMesh3AsyncVerticesAndTriangles()
+        {
+            using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.g3mesh");
+            DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "g3mesh");
+
+            DMesh3 boxMesh = BoxMesh.Value;
+            AssertMeshComponents(readMesh, boxMesh.Vertices(), boxMesh.Triangles());
+        }
+
+        [Fact]
+        public async Task ShouldReadTextStlAsyncVerticesAndTriangles()
+        {
+            // The expected triangles list is resorted because the binary stl format
+            // doesn't have triangles indices and reading them requires welding vertices
+            Index3i[] expectedTrianlges = new[]
+            {
+                new Index3i(0, 1, 2),
+                new Index3i(0, 2, 3),
+                new Index3i(4, 5, 6),
+                new Index3i(4, 6, 7),
+                new Index3i(1, 4, 7),
+                new Index3i(1, 7, 2),
+                new Index3i(5, 0, 3),
+                new Index3i(5, 3, 6),
+                new Index3i(1, 0, 5),
+                new Index3i(1, 5, 4),
+                new Index3i(7, 6, 3),
+                new Index3i(7, 3, 2)
+            };
+            using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.stl");
+            DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "stl");
+
+            DMesh3 boxMesh = BoxMesh.Value;
+            AssertMeshComponents(readMesh, boxMesh.Vertices(), expectedTrianlges);
+        }
+
         private static void AssertMeshComponents(DMesh3 mesh,
             IEnumerable<Vector3d> expectedVertices,
             IEnumerable<Index3i> expectedTrianlges)
