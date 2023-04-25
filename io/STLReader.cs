@@ -145,15 +145,14 @@ namespace g3
             };
 
             var stlTriangle = new stl_triangle();
-            var triStructTmpBuffer = MemoryMarshal.CreateSpan(ref stlTriangle, 1);
-            var truStructBuffer = MemoryMarshal.AsBytes(triStructTmpBuffer);
+            Span<byte> triangleStructBuffer = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref stlTriangle, 1));
             DVector<short> tri_attribs = new DVector<short>();
             try
             {
                 for (int i = 0; i < trianglesCount; ++i)
                 {
-                    int readBytes = stream.Read(truStructBuffer);
-                    if (readBytes != truStructBuffer.Length)
+                    int readBytes = stream.Read(triangleStructBuffer);
+                    if (readBytes != triangleStructBuffer.Length)
                         return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
 
                     append_vertex(stlTriangle.ax, stlTriangle.ay, stlTriangle.az);
