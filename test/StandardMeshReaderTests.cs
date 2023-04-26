@@ -40,7 +40,34 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public async Task ReadsBinaryStlVerticesAndTriangles()
+        public void ReadsBinaryStlVerticesAndTriangles()
+        {
+            Vector3d[] expectedVertices = BoxMesh.Value.Vertices().ToArray();
+            // The expected triangles list is resorted because the binary stl format
+            // doesn't have triangles indices and reading them requires welding vertices
+            Index3i[] expectedTrianlges = new[]
+            {
+                new Index3i(0, 1, 2),
+                new Index3i(0, 2, 3),
+                new Index3i(4, 5, 6),
+                new Index3i(4, 6, 7),
+                new Index3i(1, 4, 7),
+                new Index3i(1, 7, 2),
+                new Index3i(5, 0, 3),
+                new Index3i(5, 3, 6),
+                new Index3i(1, 0, 5),
+                new Index3i(1, 5, 4),
+                new Index3i(7, 6, 3),
+                new Index3i(7, 3, 2)
+            };
+
+            DMesh3 readMesh = StandardMeshReader.ReadMesh(Path.Combine(ModelsDirectoryPath, "box_binary.stl"));
+
+            AssertMeshComponents(readMesh, expectedVertices, expectedTrianlges);
+        }
+
+        [Fact]
+        public async Task ReadsBinaryStlAsyncVerticesAndTriangles()
         {
             Vector3d[] expectedVertices = BoxMesh.Value.Vertices().ToArray();
             // The expected triangles list is resorted because the binary stl format
@@ -67,7 +94,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public void ShouldReadObjVerticesAndTriangles()
+        public void ShouldReadObjStreamVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.obj");
             DMesh3 readMesh = StandardMeshReader.ReadMesh(fileStream, "obj");
@@ -77,7 +104,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public void ShouldReadOffVerticesAndTriangles()
+        public void ShouldReadOffStreamVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.off");
             DMesh3 readMesh = StandardMeshReader.ReadMesh(fileStream, "off");
@@ -87,7 +114,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public void ShouldReadGMesh3VerticesAndTriangles()
+        public void ShouldReadGMesh3StreamVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.g3mesh");
             DMesh3 readMesh = StandardMeshReader.ReadMesh(fileStream, "g3mesh");
@@ -97,7 +124,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public void ShouldReadTextStlVerticesAndTriangles()
+        public void ShouldReadTextStlStreamVerticesAndTriangles()
         {
             // The expected triangles list is resorted because the binary stl format
             // doesn't have triangles indices and reading them requires welding vertices
@@ -124,7 +151,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public async Task ShouldReadObjAsyncVerticesAndTriangles()
+        public async Task ShouldReadObjStreamAsyncVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.obj");
             DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "obj");
@@ -134,7 +161,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public async Task ShouldReadOffAsyncVerticesAndTriangles()
+        public async Task ShouldReadOffStreamAsyncVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.off");
             DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "off");
@@ -144,7 +171,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public async Task ShouldReadGMesh3AsyncVerticesAndTriangles()
+        public async Task ShouldReadGMesh3StreamAsyncVerticesAndTriangles()
         {
             using FileStream fileStream = File.OpenRead($"{BoxPathWithoutExtension}.g3mesh");
             DMesh3 readMesh = await StandardMeshReader.ReadMeshAsync(fileStream, "g3mesh");
@@ -154,7 +181,7 @@ namespace geometry3sharp.Tests
         }
 
         [Fact]
-        public async Task ShouldReadTextStlAsyncVerticesAndTriangles()
+        public async Task ShouldReadTextStlStreamAsyncVerticesAndTriangles()
         {
             // The expected triangles list is resorted because the binary stl format
             // doesn't have triangles indices and reading them requires welding vertices

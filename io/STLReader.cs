@@ -128,32 +128,36 @@ namespace g3
 
             // The buffer is always 80 bytes and it's not used
             const int headerSize = 80;
-            Span<byte> headerBuffer = stackalloc byte[headerSize];
-            int headerBytesRead = stream.Read(headerBuffer);
+            byte[] headerBuffer = new byte[headerSize];
+            int headerBytesRead = stream.Read(headerBuffer, offset: 0, headerSize);
             if (headerBytesRead != headerSize)
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have a header");
 
-            Span<byte> trianglesCountBuffer = stackalloc byte[4];
-            int trianglesCountRead = stream.Read(trianglesCountBuffer);
-            if (trianglesCountRead != 4)
+            byte[] trianglesCountBuffer = new byte[4];
+            int trianglesCountRead = stream.Read(trianglesCountBuffer, offset: 0, count: trianglesCountBuffer.Length);
+            if (trianglesCountRead != trianglesCountBuffer.Length)
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have triangles count");
-            int trianglesCount = MemoryMarshal.Read<int>(trianglesCountBuffer);
+            int trianglesCount = BitConverter.ToInt32(trianglesCountBuffer, startIndex: 0);
 
             Objects = new List<STLSolid>
             {
                 new STLSolid()
             };
 
-            var stlTriangle = new stl_triangle();
-            Span<byte> triangleStructBuffer = MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref stlTriangle, 1));
+            int triangleStructureSize = 50;
+            IntPtr bufptr = Marshal.AllocHGlobal(triangleStructureSize);
             DVector<short> tri_attribs = new DVector<short>();
             try
             {
                 for (int i = 0; i < trianglesCount; ++i)
                 {
-                    int readBytes = stream.Read(triangleStructBuffer);
-                    if (readBytes != triangleStructBuffer.Length)
+                    // We reuse header buffer because it's much bigger
+                    int readBytes = stream.Read(headerBuffer, offset: 0, count: triangleStructureSize);
+                    if (readBytes != triangleStructureSize)
                         return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
+
+                    Marshal.Copy(headerBuffer, 0, bufptr, triangleStructureSize);
+                    stl_triangle stlTriangle = Marshal.PtrToStructure<stl_triangle>(bufptr);
 
                     append_vertex(stlTriangle.ax, stlTriangle.ay, stlTriangle.az);
                     append_vertex(stlTriangle.bx, stlTriangle.by, stlTriangle.bz);
@@ -165,6 +169,10 @@ namespace g3
             catch (Exception e)
             {
                 return new IOReadResult(IOCode.GenericReaderError, "exception: " + e.Message);
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(bufptr);
             }
 
             if (Objects.Count == 1)

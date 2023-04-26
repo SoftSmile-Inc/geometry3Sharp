@@ -113,7 +113,9 @@ namespace g3
             using FileStream fileStream = File.OpenRead(sFilename);
             byte[] buffer = new byte[fileStream.Length];
             using MemoryStream memoryStream = new MemoryStream(buffer);
-            int readBytes = await fileStream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            int readBytes =
+                await fileStream.ReadAsync(buffer, offset: 0, count: buffer.Length, cancellationToken)
+                    .ConfigureAwait(false);
             if (readBytes != buffer.Length)
                 throw new Exception("Looks like the buffer length is not equal to the stream length");
             return Read(memoryStream, fileExtension, options);
@@ -124,7 +126,7 @@ namespace g3
             string extensionWithDot = Path.GetExtension(filename);
             if (extensionWithDot.Length < 2)
                 return null;
-            return extensionWithDot[1..];
+            return extensionWithDot.Substring(1);
         }
 
         /// <summary>
@@ -133,7 +135,9 @@ namespace g3
         public async Task<IOReadResult> ReadAsync(Stream stream, string sExtension, ReadOptions options, CancellationToken cancellationToken = default)
         {
             byte[] buffer = new byte[stream.Length];
-            int readBytes = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            int readBytes =
+                await stream.ReadAsync(buffer, offset: 0, count: buffer.Length, cancellationToken)
+                    .ConfigureAwait(false);
             if (readBytes != buffer.Length)
                 throw new Exception("Looks like the buffer length is not equal to the stream length");
             using var memoryStream = new MemoryStream(buffer);
@@ -266,9 +270,20 @@ namespace g3
         /// </summary>
         static public DMesh3 ReadMesh(Stream stream, string sExtension)
         {
-            return ReadMeshAsync(stream, sExtension).GetAwaiter().GetResult();
+            DMesh3Builder builder = new DMesh3Builder();
+            IOReadResult result = ReadFile(stream, sExtension, ReadOptions.Defaults, builder);
+            return (result.code == IOCode.Ok) ? builder.Meshes[0] : null;
         }
 
+        /// <summary>
+        /// This is basically a utility function, returns first mesh in file, with default options.
+        /// </summary>
+        static public DMesh3 ReadMesh(string sFilename)
+        {
+            DMesh3Builder builder = new DMesh3Builder();
+            IOReadResult result = ReadFile(sFilename, ReadOptions.Defaults, builder);
+            return (result.code == IOCode.Ok) ? builder.Meshes[0] : null;
+        }
 
         private void on_warning(string message, object extra_data)
         {
