@@ -124,7 +124,7 @@ namespace g3
         public bool HasComplexVertices { get; set; }
 
 
-        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
+        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             Materials = new Dictionary<string, OBJMaterial>();
             UsedMaterials = new Dictionary<int, string>();
@@ -133,7 +133,7 @@ namespace g3
             if (nWarningLevel >= 1)
                 emit_warning("[OBJReader] starting parse");
 
-            IOReadResult parseResult = await ParseInputAsync(reader, options, cancellationToken).ConfigureAwait(false);
+            IOReadResult parseResult = ParseInput(reader, options);
             if (parseResult.code != IOCode.Ok)
                 return parseResult;
 
@@ -324,7 +324,7 @@ namespace g3
 
 
 
-        public async Task<IOReadResult> ParseInputAsync(TextReader reader, ReadOptions options, CancellationToken cancellationToken = default)
+        public IOReadResult ParseInput(TextReader reader, ReadOptions options)
         {
             vPositions = new DVector<double>();
             vNormals = new DVector<float>();
@@ -342,8 +342,7 @@ namespace g3
 
             int nLines = 0;
             while (reader.Peek() >= 0) {
-
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = reader.ReadLine();
                 nLines++;
                 string[] tokens = line.Split( (char[])null , StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)

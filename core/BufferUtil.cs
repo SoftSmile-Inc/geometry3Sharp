@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
 
 namespace g3
 {
@@ -14,7 +13,7 @@ namespace g3
     ///    - byte[] conversions
     ///    - zlib compress/decompress byte[] buffers
     /// </summary>
-    public class BufferUtil
+    public static class BufferUtil
     {
         static public void SetVertex3(double[] v, int i, double x, double y, double z) {
             v[3 * i] = x;
@@ -519,7 +518,8 @@ namespace g3
             ms.Position = 0;
 
             byte[] compressed = new byte[ms.Length];
-            ms.Read(compressed, 0, compressed.Length);
+            if (!TryRead(ms, compressed))
+                throw new Exception("The buffer is not read");
 
             byte[] zBuffer = new byte[compressed.Length + 4];
             Buffer.BlockCopy(compressed, 0, zBuffer, 4, compressed.Length);
@@ -541,12 +541,32 @@ namespace g3
 
             ms.Position = 0;
             DeflateStream zip = new DeflateStream(ms, CompressionMode.Decompress);
-            zip.Read(buffer, 0, buffer.Length);
+            if (!TryRead(zip, buffer))
+                throw new Exception("The buffer is not read");
 
             return buffer;
         }
 
-
+        /// <summary>
+        /// The .NET <see cref="Stream.Read(byte[], int, int)"/> depending on implementation
+        /// may read less bytes than requested even if the stream is not empty yet. This method
+        /// does a correct reading, its body is a copy of internal FillBuffer of <see cref="BinaryReader"/>
+        /// </summary>
+        /// <param name="stream">Stream from which the data is read</param>
+        /// <param name="buffer">The buffer where data is placed</param>
+        /// <returns>Whether the reading was successful</returns>
+        public static bool TryRead(this Stream stream, byte[] buffer)
+        {
+            int bytesRead = 0;
+            do
+            {
+                int bytesReadInIteration = stream.Read(buffer, bytesRead, buffer.Length - bytesRead);
+                if (bytesReadInIteration == 0)
+                    return false;
+                bytesRead += bytesReadInIteration;
+            } while (bytesRead < buffer.Length);
+            return true;
+        }
     }
 
 

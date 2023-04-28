@@ -121,40 +121,21 @@ namespace g3
             public short attrib;
         }
 
-        private static async Task<bool> TryReadBytesAsync(Stream stream, byte[] buffer, int count, CancellationToken cancellationToken = default)
-        {
-            int readBytes =
-                await stream.ReadAsync(buffer, offset: 0, count: count, cancellationToken)
-                .ConfigureAwait(false);
-            if (readBytes != count)
-                return false;
-            return true;
-        }
-
-        private static async Task<int?> ReadInt32Async(Stream stream, byte[] buffer, CancellationToken cancellationToken = default)
-        {
-            int readBytes =
-                await stream.ReadAsync(buffer, offset: 0, count: sizeof(int), cancellationToken)
-                    .ConfigureAwait(false);
-            if (readBytes != sizeof(int))
-                return null;
-            return BitConverter.ToInt32(buffer, 0);
-        }
-
-        public async Task<IOReadResult> ReadAsync(Stream stream, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
+        public IOReadResult Read(Stream stream, ReadOptions options, IMeshBuilder builder)
         {
             if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
 
             // The buffer is always 80 bytes and it's not used
             const int headerSize = 80;
-            byte[] buffer = new byte[headerSize];
-            if (!await TryReadBytesAsync(stream, buffer, headerSize, cancellationToken).ConfigureAwait(false))
+            byte[] headerBuffer = new byte[headerSize];
+            if (!stream.TryRead(headerBuffer))
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have a header");
 
-            int? trianglesCount = await ReadInt32Async(stream, buffer, cancellationToken).ConfigureAwait(false);
-            if (trianglesCount is null)
+            byte[] trianglesCountBuffer = new byte[4];
+            if (!stream.TryRead(trianglesCountBuffer))
                 return new IOReadResult(IOCode.GenericReaderError, "The stl doesn't have triangles count");
+            int trianglesCount = BitConverter.ToInt32(trianglesCountBuffer, startIndex: 0);
 
             Objects = new List<STLSolid>
             {
@@ -162,16 +143,17 @@ namespace g3
             };
 
             int triangleStructureSize = 50;
+            byte[] triangleStructureBuffer = new byte[triangleStructureSize];
             IntPtr bufptr = Marshal.AllocHGlobal(triangleStructureSize);
             DVector<short> tri_attribs = new DVector<short>();
             try
             {
-                for (int i = 0; i < trianglesCount.Value; ++i)
+                for (int i = 0; i < trianglesCount; ++i)
                 {
-                    if (!await TryReadBytesAsync(stream, buffer, triangleStructureSize, cancellationToken).ConfigureAwait(false))
+                    if (!stream.TryRead(triangleStructureBuffer))
                         return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
 
-                    Marshal.Copy(buffer, 0, bufptr, triangleStructureSize);
+                    Marshal.Copy(triangleStructureBuffer, 0, bufptr, triangleStructureSize);
                     stl_triangle stlTriangle = Marshal.PtrToStructure<stl_triangle>(bufptr);
 
                     append_vertex(stlTriangle.ax, stlTriangle.ay, stlTriangle.az);
@@ -185,8 +167,10 @@ namespace g3
             {
                 return new IOReadResult(IOCode.GenericReaderError, "exception: " + e.Message);
             }
-
-            Marshal.FreeHGlobal(bufptr);
+            finally
+            {
+                Marshal.FreeHGlobal(bufptr);
+            }
 
             if (Objects.Count == 1)
                 Objects[0].TriAttribs = tri_attribs;
@@ -197,7 +181,7 @@ namespace g3
             return new IOReadResult(IOCode.Ok, "");
         }
 
-        public async Task<IOReadResult> ReadAsync(TextReader reader, ReadOptions options, IMeshBuilder builder, CancellationToken cancellationToken = default)
+        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
         {
             if (options.CustomFlags != null)
                 ParseArguments(options.CustomFlags);
@@ -223,7 +207,7 @@ namespace g3
             int nLines = 0;
             while (reader.Peek() >= 0)
             {
-                string line = await reader.ReadLineAsync().WithCancellation(cancellationToken).ConfigureAwait(false);
+                string line = reader.ReadLine();
                 nLines++;
                 string[] tokens = line.Split((char[])null, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0)

@@ -1,5 +1,7 @@
 # Folders
 .vs/
+.idea/
+.vscode/
 
 # Compiled Object files
 *.slo
@@ -37,3 +39,4 @@ bin
 obj
 .vs
 *.meta
+geometry3Sharp.sln.DotSettings.user

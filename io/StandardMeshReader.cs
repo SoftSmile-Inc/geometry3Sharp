@@ -14,8 +14,8 @@ namespace g3
     public interface MeshFormatReader
     {
         List<string> SupportedExtensions { get; }
-        Task<IOReadResult> ReadFileAsync(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler warnings, CancellationToken cancellationToken = default);
-        Task<IOReadResult> ReadFileAsync(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler warnings, CancellationToken cancellationToken = default);
+        IOReadResult ReadFile(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler warnings);
+        IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler warnings);
     }
 
 
@@ -69,7 +69,7 @@ namespace g3
         /// </summary>
         public bool SupportsFormat(string sExtension)
         {
-            foreach (var reader in Readers)
+            foreach (MeshFormatReader reader in Readers)
                 foreach (string ext in reader.SupportedExtensions)
                     if (ext.Equals(sExtension, StringComparison.OrdinalIgnoreCase))
                         return true;
@@ -95,7 +95,11 @@ namespace g3
         /// </summary>
         public IOReadResult Read(string sFilename, ReadOptions options)
         {
-            return ReadAsync(sFilename, options).GetAwaiter().GetResult();
+            string? fileExtension = GetExtension(sFilename);
+            if (fileExtension is null)
+                return new IOReadResult(IOCode.InvalidFilenameError, $"The extension of '{fileExtension}' is not parsed");
+            using FileStream fileStream = File.OpenRead(sFilename);
+            return Read(fileStream, fileExtension, options);
         }
 
         /// <summary>
@@ -103,64 +107,47 @@ namespace g3
         /// </summary>
         public async Task<IOReadResult> ReadAsync(string sFilename, ReadOptions options, CancellationToken cancellationToken = default)
         {
-            if (MeshBuilder == null)
-                return new IOReadResult(IOCode.GenericReaderError, "MeshBuilder is null!");
-
-            string sExtension = Path.GetExtension(sFilename);
-            if (sExtension.Length < 2)
-            {
-                return new IOReadResult(IOCode.InvalidFilenameError, "filename " + sFilename + " does not contain valid extension");
-            }
-            sExtension = sExtension.Substring(1);
-
-            MeshFormatReader useReader = null;
-            foreach (MeshFormatReader reader in Readers)
-            {
-                foreach (string ext in reader.SupportedExtensions)
-                {
-                    if (ext.Equals(sExtension, StringComparison.OrdinalIgnoreCase))
-                        useReader = reader;
-                }
-                if (useReader != null)
-                    break;
-            }
-            if (useReader == null)
-                return new IOReadResult(IOCode.UnknownFormatError, "format " + sExtension + " is not supported");
-
-            // save current culture
-            CultureInfo current_culture = Thread.CurrentThread.CurrentCulture;
-
-            try
-            {
-                // push invariant culture for write
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-
-                IOReadResult result = await useReader.ReadFileAsync(sFilename, MeshBuilder, options, on_warning, cancellationToken)
+            string? fileExtension = GetExtension(sFilename);
+            if (fileExtension is null)
+                return new IOReadResult(IOCode.InvalidFilenameError, $"The extension of '{fileExtension}' is not parsed");
+            using FileStream fileStream = File.OpenRead(sFilename);
+            byte[] buffer = new byte[fileStream.Length];
+            using MemoryStream memoryStream = new MemoryStream(buffer);
+            int readBytes =
+                await fileStream.ReadAsync(buffer, offset: 0, count: buffer.Length, cancellationToken)
                     .ConfigureAwait(false);
-
-                // restore culture
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = current_culture;
-
-                return result;
-
-            }
-            catch (Exception e)
-            {
-                // restore culture
-                if (ReadInvariantCulture)
-                    Thread.CurrentThread.CurrentCulture = current_culture;
-
-                return new IOReadResult(IOCode.GenericReaderError, "Unknown error : exception : " + e.Message);
-            }
+            if (readBytes != buffer.Length)
+                throw new Exception("Looks like the buffer length is not equal to the stream length");
+            return Read(memoryStream, fileExtension, options);
         }
 
+        private static string? GetExtension(string filename)
+        {
+            string extensionWithDot = Path.GetExtension(filename);
+            if (extensionWithDot.Length < 2)
+                return null;
+            return extensionWithDot.Substring(1);
+        }
 
         /// <summary>
         /// Read mesh file at path, with given Options. Result is stored in MeshBuilder parameter
         /// </summary>
         public async Task<IOReadResult> ReadAsync(Stream stream, string sExtension, ReadOptions options, CancellationToken cancellationToken = default)
+        {
+            byte[] buffer = new byte[stream.Length];
+            int readBytes =
+                await stream.ReadAsync(buffer, offset: 0, count: buffer.Length, cancellationToken)
+                    .ConfigureAwait(false);
+            if (readBytes != buffer.Length)
+                throw new Exception("Looks like the buffer length is not equal to the stream length");
+            using var memoryStream = new MemoryStream(buffer);
+            return Read(memoryStream, sExtension, options);
+        }
+
+        /// <summary>
+        /// Read mesh file at path, with given Options. Result is stored in MeshBuilder parameter
+        /// </summary>
+        public IOReadResult Read(Stream stream, string sExtension, ReadOptions options)
         {
             if (MeshBuilder == null)
                 return new IOReadResult(IOCode.GenericReaderError, "MeshBuilder is null!");
@@ -187,7 +174,7 @@ namespace g3
                 if (ReadInvariantCulture)
                     Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
 
-                IOReadResult result = await useReader.ReadFileAsync(stream, MeshBuilder, options, on_warning, cancellationToken).ConfigureAwait(false);
+                IOReadResult result = useReader.ReadFile(stream, MeshBuilder, options, on_warning);
 
                 // restore culture
                 if (ReadInvariantCulture)
@@ -227,7 +214,9 @@ namespace g3
         /// </summary>
         static public IOReadResult ReadFile(string sFilename, ReadOptions options, IMeshBuilder builder)
         {
-            return ReadFileAsync(sFilename, options, builder).GetAwaiter().GetResult();
+            StandardMeshReader reader = new StandardMeshReader();
+            reader.MeshBuilder = builder;
+            return reader.Read(sFilename, options);
         }
 
         /// <summary>
@@ -248,7 +237,9 @@ namespace g3
         /// </summary>
         static public IOReadResult ReadFile(Stream stream, string sExtension, ReadOptions options, IMeshBuilder builder)
         {
-            return ReadFileAsync(stream, sExtension, options, builder).GetAwaiter().GetResult();
+            StandardMeshReader reader = new StandardMeshReader();
+            reader.MeshBuilder = builder;
+            return reader.Read(stream, sExtension, options);
         }
 
 
@@ -279,9 +270,20 @@ namespace g3
         /// </summary>
         static public DMesh3 ReadMesh(Stream stream, string sExtension)
         {
-            return ReadMeshAsync(stream, sExtension).GetAwaiter().GetResult();
+            DMesh3Builder builder = new DMesh3Builder();
+            IOReadResult result = ReadFile(stream, sExtension, ReadOptions.Defaults, builder);
+            return (result.code == IOCode.Ok) ? builder.Meshes[0] : null;
         }
 
+        /// <summary>
+        /// This is basically a utility function, returns first mesh in file, with default options.
+        /// </summary>
+        static public DMesh3 ReadMesh(string sFilename)
+        {
+            DMesh3Builder builder = new DMesh3Builder();
+            IOReadResult result = ReadFile(sFilename, ReadOptions.Defaults, builder);
+            return (result.code == IOCode.Ok) ? builder.Meshes[0] : null;
+        }
 
         private void on_warning(string message, object extra_data)
         {
@@ -304,7 +306,7 @@ namespace g3
         }
 
 
-        public async Task<IOReadResult> ReadFileAsync(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             try
             {
@@ -315,7 +317,7 @@ namespace g3
                         reader.MTLFileSearchPaths.Add(Path.GetDirectoryName(sFilename));
                     reader.warningEvent += messages;
 
-                    IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
+                    IOReadResult result = reader.Read(new StreamReader(stream), options, builder);
                     return result;
                 }
             }
@@ -325,13 +327,11 @@ namespace g3
             }
         }
 
-        public async Task<IOReadResult> ReadFileAsync(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             OBJReader reader = new OBJReader();
             reader.warningEvent += messages;
-            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken)
-                .ConfigureAwait(false);
-            return result;
+            return reader.Read(new StreamReader(stream), options, builder);
         }
     }
 
@@ -349,13 +349,13 @@ namespace g3
         }
 
 
-        public async Task<IOReadResult> ReadFileAsync(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             try
             {
                 using (FileStream stream = File.Open(sFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    return await ReadFileAsync(stream, builder, options, messages, cancellationToken).ConfigureAwait(false);
+                    return ReadFile(stream, builder, options, messages);
                 }
             }
             catch (Exception e)
@@ -364,7 +364,7 @@ namespace g3
             }
         }
 
-        public async Task<IOReadResult> ReadFileAsync(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             // detect binary STL
             //BinaryReader binReader = new BinaryReader(stream);
@@ -393,8 +393,8 @@ namespace g3
             STLReader reader = new STLReader();
             reader.warningEvent += messages;
             IOReadResult result = (bIsBinary) ?
-                await reader.ReadAsync(stream, options, builder, cancellationToken).ConfigureAwait(false) :
-                await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
+                reader.Read(stream, options, builder) :
+                reader.Read(new StreamReader(stream), options, builder);
 
             return result;
         }
@@ -416,13 +416,13 @@ namespace g3
         }
 
 
-        public async Task<IOReadResult> ReadFileAsync(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             try
             {
                 using (FileStream stream = File.Open(sFilename, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    return await ReadFileAsync(stream, builder, options, messages, cancellationToken).ConfigureAwait(false);
+                    return ReadFile(stream, builder, options, messages);
                 }
             }
             catch (Exception e)
@@ -431,12 +431,11 @@ namespace g3
             }
         }
 
-        public async Task<IOReadResult> ReadFileAsync(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             OFFReader reader = new OFFReader();
             reader.warningEvent += messages;
-            IOReadResult result = await reader.ReadAsync(new StreamReader(stream), options, builder, cancellationToken).ConfigureAwait(false);
-            return result;
+            return reader.Read(new StreamReader(stream), options, builder);
         }
     }
 
@@ -453,13 +452,13 @@ namespace g3
             }
         }
 
-        public async Task<IOReadResult> ReadFileAsync(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(string sFilename, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             try
             {
                 using (FileStream stream = File.Open(sFilename, FileMode.Open, FileAccess.Read))
                 {
-                    return await ReadFileAsync(stream, builder, options, messages, cancellationToken).ConfigureAwait(false);
+                    return ReadFile(stream, builder, options, messages);
                 }
             }
             catch (Exception e)
@@ -468,12 +467,11 @@ namespace g3
             }
         }
 
-        public async Task<IOReadResult> ReadFileAsync(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages, CancellationToken cancellationToken = default)
+        public IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             BinaryG3Reader reader = new BinaryG3Reader();
             //reader.warningEvent += messages;
-            IOReadResult result = await reader.ReadAsync(stream, options, builder, cancellationToken).ConfigureAwait(false);
-            return result;
+            return reader.Read(stream, options, builder);
         }
 
     }
