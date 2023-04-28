@@ -150,7 +150,6 @@ namespace g3
             {
                 for (int i = 0; i < trianglesCount; ++i)
                 {
-                    // We reuse header buffer because it's much bigger
                     if (!stream.TryRead(triangleStructureBuffer))
                         return new IOReadResult(IOCode.GenericReaderError, "A triangle cannot be read");
 
