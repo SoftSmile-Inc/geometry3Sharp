@@ -111,7 +111,6 @@ namespace gs
 
             // only want to raycast triangles in this 
             HashSet<int> tris = new HashSet<int>(c.triangles);
-            spatial.TriangleFilterF = tris.Contains;
 
             // We want to try to figure out what is 'outside' relative to the world.
             // Assumption is that faces we can hit from far away should be oriented outwards.
@@ -136,8 +135,8 @@ namespace gs
                     Vector3d neg_pt = centroid - dist * normal;
 
                     // raycast towards triangle from far-away point
-                    int hit_pos = spatial.FindNearestHitTriangle(new Ray3d(pos_pt, -normal));
-                    int hit_neg = spatial.FindNearestHitTriangle(new Ray3d(neg_pt, normal));
+                    int hit_pos = spatial.FindNearestHitTriangle(new Ray3d(pos_pt, -normal), triangleFilterF: tris.Contains);
+                    int hit_neg = spatial.FindNearestHitTriangle(new Ray3d(neg_pt, normal), triangleFilterF: tris.Contains);
                     if (hit_pos != ti && hit_neg != ti)
                         continue;       // no evidence
                     if (hit_pos == ti && hit_neg == ti)
@@ -154,8 +153,6 @@ namespace gs
                     count_lock.Exit();
 				}
 			});
-
-            spatial.TriangleFilterF = null;
         }
 
 
