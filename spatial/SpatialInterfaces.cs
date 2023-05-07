@@ -11,14 +11,14 @@ namespace g3
         /// <summary>
         /// Find id of triangle nearest to p within distance fMaxDist, or return DMesh3.InvalidID if not found
         /// </summary>
-        int FindNearestTriangle(Vector3d p, double fMaxDist = double.MaxValue);
+        int FindNearestTriangle(Vector3d p, double fMaxDist = double.MaxValue, TriangleFilterDelegate triangleFilterF = null);
 
         bool SupportsTriangleRayIntersection{ get; }
 
         /// <summary>
         /// Find id of triangle intersected by ray, where intersection point is within distance fMaxDist, or return DMesh3.InvalidID if not found
         /// </summary>
-        int FindNearestHitTriangle(Ray3d ray, double fMaxDist = double.MaxValue);
+        int FindNearestHitTriangle(Ray3d ray, double fMaxDist = double.MaxValue, TriangleFilterDelegate triangleFilterF = null);
 
         bool SupportsPointContainment { get; }
 
@@ -45,4 +45,8 @@ namespace g3
         bool RayIntersect(Ray3d ray, out Vector3d vHit, out Vector3d vHitNormal);
     }
 
+    /// <summary>
+    /// Returns True for valid triangles
+    /// </summary>
+    public delegate bool TriangleFilterDelegate(int triangleId);
 }

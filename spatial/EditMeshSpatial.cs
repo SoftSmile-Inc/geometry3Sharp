@@ -38,7 +38,7 @@ namespace gs
 
 
         public bool SupportsNearestTriangle { get { return false; } }
-        public int FindNearestTriangle(Vector3d p, double fMaxDist = double.MaxValue) {
+        public int FindNearestTriangle(Vector3d p, double fMaxDist = double.MaxValue, TriangleFilterDelegate triangleFilterF = null) {
             return DMesh3.InvalidID;
         }
 
@@ -48,12 +48,10 @@ namespace gs
 
         public bool SupportsTriangleRayIntersection { get { return true; } }
 
-        public int FindNearestHitTriangle(Ray3d ray, double fMaxDist = double.MaxValue)
+        public int FindNearestHitTriangle(Ray3d ray, double fMaxDist = double.MaxValue, TriangleFilterDelegate triangleFilterF = null)
         {
-            var save_filter = SourceSpatial.TriangleFilterF;
-            SourceSpatial.TriangleFilterF = source_filter;
-            int hit_source_tid = SourceSpatial.FindNearestHitTriangle(ray);
-            SourceSpatial.TriangleFilterF = save_filter;
+            int hit_source_tid = SourceSpatial.FindNearestHitTriangle(ray,
+                triangleFilterF: (tid) => source_filter(tid) && triangleFilterF?.Invoke(tid) != false);
 
             int hit_edit_tid;
             IntrRay3Triangle3 edit_hit = find_added_hit(ref ray, out hit_edit_tid);
