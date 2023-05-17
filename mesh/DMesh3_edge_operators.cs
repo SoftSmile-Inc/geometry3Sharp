@@ -76,6 +76,21 @@ namespace g3
                     if (result != MeshResult.Ok)
                         return result;
                 }
+
+                // above we enumerated adjacent triangles in mode [bUseOrientation: false], which is fast, but may miss triangles in case mesh structure in invalid.
+                // here we do additional attempt to find the invalid triangles.
+                // for example: the Invalid triangle may not have one of its Edges assigned,
+                // which supposedly happens when Three (or more) triangles lay on a single pair of vertices, because DMesh3 supposes only 2 triangles per edge, and a single edge per vertex pair.
+                if (vertices_refcount.refCount(vID) != 1)
+                {
+                    tris.Clear();
+                    GetVtxTriangles(vID, tris, bUseOrientation: false); // use extensive triangles search, which is robust on invalid meshes
+                    foreach (int tid in tris) {
+                        MeshResult result = RemoveTriangle(tid, false, bPreserveManifold);
+                        if (result != MeshResult.Ok)
+                            return result;
+                    }
+                }
             }
 
             if ( vertices_refcount.refCount(vID) != 1)

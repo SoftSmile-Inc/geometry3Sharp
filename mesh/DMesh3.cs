@@ -1658,7 +1658,8 @@ namespace g3
 
 
         /// <summary>
-        /// iterate over triangle IDs of vertex one-ring
+        /// iterate over triangle IDs of vertex one-ring.
+        /// NOTE: it can miss triangles on Non-Manifold mesh, see GetVtxTriangles(..., bUseOrientation: false);
         /// </summary>
 		public IEnumerable<int> VtxTrianglesItr(int vID) {
 			if ( IsVertex(vID) ) {
