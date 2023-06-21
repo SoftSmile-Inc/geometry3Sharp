@@ -260,6 +260,27 @@ namespace g3
             }
         }
 
+        /// <summary>
+        /// check if the mesh contains dense set of Vertices and Triangles (all the vertices/triangles fill the address space beginning)
+        /// i.e. if the mesh can be made compact without indices change
+        /// </summary>
+        public bool HasDenseVerticesAndTrianglesIndex()
+        {
+            for (int vid = VertexCount - 1; vid != -1; vid--)
+            {
+                if (!IsVertex(vid))
+                    return false;
+            }
+
+            for (int tid = TriangleCount - 1; tid != -1; tid--)
+            {
+                if (!IsTriangle(tid))
+                    return false;
+            }
+
+            return true;
+        }
+
         public CopyCompactInfo CompactCopy(DMesh3 copy, bool bNormals = true, bool bColors = true, bool bUVs = true)
         {
             if ( copy.IsCompact ) {
@@ -2367,9 +2388,23 @@ namespace g3
         /// </summary>
         public InPlaceCompactInfo CompactInPlace(bool bComputeCompactInfo = false)
         {
-            IndexMap mapV = (bComputeCompactInfo) ? new IndexMap(MaxVertexID, VertexCount) : null;
-            IndexMap mapT = (bComputeCompactInfo) ? new IndexMap(MaxTriangleID, TriangleCount) : null;
-            InPlaceCompactInfo ci = new InPlaceCompactInfo(mapV, mapT);
+            IndexMap mapV = null;
+            IndexMap mapT = null;
+            InPlaceCompactInfo ci;
+            if (!bComputeCompactInfo) // no need to return mapping structures at all
+            {
+                ci = new InPlaceCompactInfo(null, null);
+            }
+            else if (HasDenseVerticesAndTrianglesIndex()) // the compactification will not change vertex indices, so we return Stub identity mappings
+            {
+                ci = new InPlaceCompactInfo(new IdentityIndexMap(), new IdentityIndexMap());
+            }
+            else // create, fill and return full mapping structures
+            {
+                mapV = new IndexMap(MaxVertexID, VertexCount);
+                mapT = new IndexMap(MaxTriangleID, TriangleCount);
+                ci = new InPlaceCompactInfo(mapV, mapT);
+            }
 
             // find first free vertex, and last used vertex
             int iLastV = MaxVertexID - 1, iCurV = 0;
