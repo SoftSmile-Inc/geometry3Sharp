@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 
 namespace g3
 {
@@ -11,12 +8,26 @@ namespace g3
     /// </summary>
     public class DenseGrid3f
     {
-        public float[] Buffer;
-        public int ni, nj, nk;
+        private float[] _buffer;
+        public int ni;
+        public int nj;
+        public int nk;
 
         public DenseGrid3f()
         {
             ni = nj = nk = 0;
+        }
+
+        public DenseGrid3f(int ni, int nj, int nk, float[] buffer)
+        {
+            if (buffer.Length != ni * nj * nk)
+            {
+                throw new ArgumentException($"Incorrect buffer length expected {buffer.Length} but actually {ni * nj * nk}");
+            }
+            this.ni = ni;
+            this.nj = nj;
+            this.nk = nk;
+            _buffer = buffer;
         }
 
         public DenseGrid3f(int ni, int nj, int nk, float initialValue)
@@ -27,72 +38,72 @@ namespace g3
 
         public DenseGrid3f(DenseGrid3f copy)
         {
-            Buffer = new float[copy.Buffer.Length];
-            Array.Copy(copy.Buffer, Buffer, Buffer.Length);
+            _buffer = new float[copy._buffer.Length];
+            Array.Copy(copy._buffer, _buffer, _buffer.Length);
             ni = copy.ni; nj = copy.nj; nk = copy.nk;
         }
 
         public void swap(DenseGrid3f g2)
         {
             Util.gDevAssert(ni == g2.ni && nj == g2.nj && nk == g2.nk);
-            var tmp = g2.Buffer;
-            g2.Buffer = this.Buffer;
-            this.Buffer = tmp;
+            var tmp = g2._buffer;
+            g2._buffer = this._buffer;
+            this._buffer = tmp;
         }
 
         public int size { get { return ni * nj * nk; } }
 
         public void resize(int ni, int nj, int nk)
         {
-            Buffer = new float[ni * nj * nk];
+            _buffer = new float[ni * nj * nk];
             this.ni = ni; this.nj = nj; this.nk = nk;
         }
 
         public void assign(float value)
         {
-            for (int i = 0; i < Buffer.Length; ++i)
-                Buffer[i] = value;
+            for (int i = 0; i < _buffer.Length; ++i)
+                _buffer[i] = value;
         }
 
         public void set_min(ref Vector3i ijk, float f)
         {
             int idx = ijk.x + ni * (ijk.y + nj * ijk.z);
-            if (f < Buffer[idx])
-                Buffer[idx] = f;
+            if (f < _buffer[idx])
+                _buffer[idx] = f;
         }
         public void set_max(ref Vector3i ijk, float f)
         {
             int idx = ijk.x + ni * (ijk.y + nj * ijk.z);
-            if (f > Buffer[idx])
-                Buffer[idx] = f;
+            if (f > _buffer[idx])
+                _buffer[idx] = f;
         }
 
         public float this[int i] {
-            get { return Buffer[i]; }
-            set { Buffer[i] = value; }
+            get { return _buffer[i]; }
+            set { _buffer[i] = value; }
         }
 
         public float this[int i, int j, int k] {
-            get { return Buffer[i + ni * (j + nj * k)]; }
-            set { Buffer[i + ni * (j + nj * k)] = value; }
+            get { return _buffer[i + ni * (j + nj * k)]; }
+            set { _buffer[i + ni * (j + nj * k)] = value; }
         }
 
         public float this[Vector3i ijk] {
-            get { return Buffer[ijk.x + ni * (ijk.y + nj * ijk.z)]; }
-            set { Buffer[ijk.x + ni * (ijk.y + nj * ijk.z)] = value; }
+            get { return _buffer[ijk.x + ni * (ijk.y + nj * ijk.z)]; }
+            set { _buffer[ijk.x + ni * (ijk.y + nj * ijk.z)] = value; }
         }
 
         public void get_x_pair(int i0, int j, int k, out float a, out float b)
         {
             int offset = ni * (j + nj * k);
-            a = Buffer[offset + i0];
-            b = Buffer[offset + i0 + 1];
+            a = _buffer[offset + i0];
+            b = _buffer[offset + i0 + 1];
         }
         public void get_x_pair(int i0, int j, int k, out double a, out double b)
         {
             int offset = ni * (j + nj * k);
-            a = Buffer[offset + i0];
-            b = Buffer[offset + i0 + 1];
+            a = _buffer[offset + i0];
+            b = _buffer[offset + i0 + 1];
         }
 
         public void apply(Func<float, float> f)
@@ -101,7 +112,7 @@ namespace g3
                 for (int j = 0; j < nj; j++ ) {
                     for ( int i = 0; i < ni; i++ ) {
                         int idx = i + ni * (j + nj * k);
-                        Buffer[idx] = f(Buffer[idx]);
+                        _buffer[idx] = f(_buffer[idx]);
                     }
                 }
             }
@@ -115,17 +126,17 @@ namespace g3
                 slice = new DenseGrid2f(nj, nk, 0);
                 for (int k = 0; k < nk; ++k)
                     for (int j = 0; j < nj; ++j)
-                        slice[j, k] = Buffer[slice_i + ni * (j + nj * k)];
+                        slice[j, k] = _buffer[slice_i + ni * (j + nj * k)];
             } else if (dimension == 1) {
                 slice = new DenseGrid2f(ni, nk, 0);
                 for (int k = 0; k < nk; ++k)
                     for (int i = 0; i < ni; ++i)
-                        slice[i, k] = Buffer[i + ni * (slice_i + nj * k)];
+                        slice[i, k] = _buffer[i + ni * (slice_i + nj * k)];
             } else {
                 slice = new DenseGrid2f(ni, nj, 0);
                 for (int j = 0; j < nj; ++j)
                     for (int i = 0; i < ni; ++i)
-                        slice[i, j] = Buffer[i + ni * (j + nj * slice_i)];
+                        slice[i, j] = _buffer[i + ni * (j + nj * slice_i)];
             }
             return slice;
         }
@@ -136,15 +147,15 @@ namespace g3
             if (dimension == 0) {
                 for (int k = 0; k < nk; ++k)
                     for (int j = 0; j < nj; ++j)
-                        Buffer[slice_i + ni * (j + nj * k)] = slice[j, k];
+                        _buffer[slice_i + ni * (j + nj * k)] = slice[j, k];
             } else if (dimension == 1) {
                 for (int k = 0; k < nk; ++k)
                     for (int i = 0; i < ni; ++i)
-                        Buffer[i + ni * (slice_i + nj * k)] = slice[i, k];
+                        _buffer[i + ni * (slice_i + nj * k)] = slice[i, k];
             } else {
                 for (int j = 0; j < nj; ++j)
                     for (int i = 0; i < ni; ++i)
-                        Buffer[i + ni * (j + nj * slice_i)] = slice[i, j];
+                        _buffer[i + ni * (j + nj * slice_i)] = slice[i, j];
             }
         }
 
