@@ -7,6 +7,7 @@ namespace g3
     public struct Quaternionf : IComparable<Quaternionf>, IEquatable<Quaternionf>
     {
         // note: in Wm5 version, this is a 4-element array stored in order (w,x,y,z).
+        // x,y,z -- imaginary, w -- real
         public float x;
         public float y;
         public float z;
@@ -141,6 +142,19 @@ namespace g3
             return new Quaternionf(x, y, z, w);
         }
 
+        /// <summary>
+        /// Performs complex-conjugation on the quaternion. For unit quaternion it is the same as inverse, but
+        /// we do not re-normalize it here.
+        /// </summary>
+        /// <returns>complex-conjugate</returns>
+        public readonly Quaternionf Conjugate() => new Quaternionf(-x, -y, -z, w);
+
+        /// <summary>
+        /// The angle between the two points as seen by an observer
+        /// </summary>
+        /// <param name="q">the other quaternion</param>
+        /// <returns>Angle in radians</returns>
+        public readonly float AngularDistanceR(in Quaternionf q) => 2.0f * (float)Math.Acos((this * q.Conjugate()).w);
 
         public static Quaternionf operator -(Quaternionf q1, Quaternionf q2)
         {
