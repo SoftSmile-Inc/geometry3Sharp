@@ -225,6 +225,7 @@ namespace g3
         {
             while (DenseQueue.Count > 0) {
                 float idx_priority = DenseQueue.FirstPriority;
+                max_value = Math.Max(idx_priority, max_value);
                 int idx = DenseQueue.Dequeue();
                 GraphNodeStruct g = DenseNodes[idx];
                 g.frozen = true;
@@ -232,7 +233,6 @@ namespace g3
                     order.Add(g.id);
                 g.distance = max_value;
                 DenseNodes[idx] = g;
-                max_value = Math.Max(idx_priority, max_value);
                 update_neighbours_dense(g.id);
             }
         }
