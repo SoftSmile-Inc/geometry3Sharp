@@ -13,7 +13,7 @@ namespace gs
     {
         public DMesh3 Mesh;
 
-        public double MergeDistance = MathUtil.ZeroTolerancef;
+        public double? MergeDistance = null;
 
         public bool OnlyUniquePairs = false;
 
@@ -32,7 +32,6 @@ namespace gs
         public virtual bool Apply()
         {
             _mergeEdgesInfos.Clear();
-            merge_r2 = MergeDistance * MergeDistance;
 
             // construct hash table for edge midpoints
             MeshBoundaryEdgeMidpoints pointset = new MeshBoundaryEdgeMidpoints(Mesh);
@@ -41,7 +40,15 @@ namespace gs
             if (Mesh.TriangleCount > 100000) hashN = 128;
             if (Mesh.TriangleCount > 1000000) hashN = 256;
             hash.Build(hashN);
-
+            // If the MergeDistance is larger than CellSize, we get an error.
+            double mergeDistance = MergeDistance is null
+                ? MathUtil.ZeroTolerancef : MergeDistance.Value;
+            if (MergeDistance is null
+                && mergeDistance > hash.CellSize)
+                // If the distance hasn't been provided,
+                // we choose the maximum possible ball size
+                mergeDistance = hash.CellSize;
+            merge_r2 = mergeDistance * mergeDistance;
             Vector3d a = Vector3d.Zero, b = Vector3d.Zero;
             Vector3d c = Vector3d.Zero, d = Vector3d.Zero;
 
@@ -54,7 +61,7 @@ namespace gs
             {
                 Vector3d midpt = Mesh.GetEdgePoint(eid, 0.5);
                 int N;
-                while (hash.FindInBall(midpt, MergeDistance, buffer, out N) == false)
+                while (hash.FindInBall(midpt, mergeDistance, buffer, out N) == false)
                     buffer = new int[buffer.Length];
                 if (N == 1 && buffer[0] != eid)
                     throw new Exception("MergeCoincidentEdges.Apply: how could this happen?!");

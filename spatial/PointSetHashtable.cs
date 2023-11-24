@@ -13,7 +13,7 @@ namespace gs
 		ShiftGridIndexer3 indexF;
 
 		Vector3d Origin;
-		double CellSize;
+		public double CellSize { get; private set; }
 
 		public PointSetHashtable(IPointSet points)
 		{
