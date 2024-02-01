@@ -2410,7 +2410,7 @@ namespace g3
             if (!vertices_refcount.is_dense)
             {
                 // find first free vertex, and last used vertex
-                int iLastV = MaxVertexID - 1, iCurV = 0;
+                int iLastV = vertices_refcount.max_index - 1, iCurV = 0;
                 while (iLastV >= 0 && !vertices_refcount.isValidUnsafe(iLastV))
                     iLastV--;
                 while (iCurV < vertices_refcount.max_index && vertices_refcount.isValidUnsafe(iCurV))
@@ -2461,7 +2461,7 @@ namespace g3
 
                     // move cur forward one, last back one, and  then search for next valid
                     iLastV--; iCurV++;
-                    while (vertices_refcount.isValidUnsafe(iLastV) == false)
+                    while (iLastV >= 0 && vertices_refcount.isValidUnsafe(iLastV) == false)
                         iLastV--;
                     while (vertices_refcount.isValidUnsafe(iCurV) && iCurV < iLastV)
                         iCurV++;
@@ -2484,7 +2484,7 @@ namespace g3
             if (!triangles_refcount.is_dense)
             {
                 // find first free triangle, and last valid triangle
-                int iLastT = MaxTriangleID - 1, iCurT = 0;
+                int iLastT = triangles_refcount.max_index - 1, iCurT = 0;
                 while (iLastT > 0 && !triangles_refcount.isValidUnsafe(iLastT))
                     iLastT--;
                 while (iCurT < triangles_refcount.max_index && triangles_refcount.isValidUnsafe(iCurT))
@@ -2521,7 +2521,7 @@ namespace g3
 
                     // move cur forward one, last back one, and  then search for next valid
                     iLastT--; iCurT++;
-                    while (triangles_refcount.isValidUnsafe(iLastT) == false)
+                    while (iLastT >= 0 && triangles_refcount.isValidUnsafe(iLastT) == false)
                         iLastT--;
                     while (triangles_refcount.isValidUnsafe(iCurT) && iCurT < iLastT)
                         iCurT++;
@@ -2539,7 +2539,7 @@ namespace g3
             if (!edges_refcount.is_dense)
             {
                 // find first free edge, and last used edge
-                int iLastE = MaxEdgeID - 1, iCurE = 0;
+                int iLastE = edges_refcount.max_index - 1, iCurE = 0;
                 while (iLastE >= 0 && !edges_refcount.isValidUnsafe(iLastE))
                     iLastE--;
                 while (iCurE < edges_refcount.max_index && edges_refcount.isValidUnsafe(iCurE))
@@ -2573,7 +2573,7 @@ namespace g3
 
                     // move cur forward one, last back one, and  then search for next valid
                     iLastE--; iCurE++;
-                    while (edges_refcount.isValidUnsafe(iLastE) == false)
+                    while (iLastE >= 0 && edges_refcount.isValidUnsafe(iLastE) == false)
                         iLastE--;
                     while (edges_refcount.isValidUnsafe(iCurE) && iCurE < iLastE)
                         iCurE++;
