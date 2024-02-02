@@ -73,7 +73,7 @@ namespace g3
 		}
 
 
-		public virtual bool Trim()
+		public virtual bool Trim(int maxDegreeOfParallelism)
 		{
             if ( Spatial == null ) {
                 Spatial = new DMeshAABBTree3(new DMesh3(Mesh, false, MeshComponents.None));
@@ -147,7 +147,7 @@ namespace g3
             MeshConstraintUtil.ConstrainVtxLoopTo(remesh, loopVerts, multiTarget, set_id);
 
             for (int i = 0; i < RemeshRounds; ++i) {
-                remesh.BasicRemeshPass();
+                remesh.BasicRemeshPass(maxDegreeOfParallelism);
             }
 
             remesh.BackPropropagate();

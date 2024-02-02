@@ -72,7 +72,7 @@ namespace g3
 
 
 
-        public virtual void DoReduce()
+        public virtual void DoReduce(int maxDegreeOfParallelism)
         {
             if (mesh.TriangleCount == 0)    // badness if we don't catch this...
                 return;
@@ -83,10 +83,10 @@ namespace g3
             Precompute();
             if (Cancelled())
                 return;
-            InitializeVertexQuadrics();
+            InitializeVertexQuadrics(maxDegreeOfParallelism);
             if (Cancelled())
                 return;
-            InitializeQueue();
+            InitializeQueue(maxDegreeOfParallelism);
             if (Cancelled())
                 return;
             end_setup();
@@ -125,35 +125,35 @@ namespace g3
             if (Cancelled())
                 return;
 
-            Reproject();
+            Reproject(maxDegreeOfParallelism);
 
             end_pass();
         }
 
 
 
-        public virtual void ReduceToTriangleCount(int nCount)
+        public virtual void ReduceToTriangleCount(int nCount, int maxDegreeOfParallelism)
         {
             ReduceMode = TargetModes.TriangleCount;
             TargetCount = Math.Max(1,nCount);
             MinEdgeLength = double.MaxValue;
-            DoReduce();
+            DoReduce(maxDegreeOfParallelism);
         }
 
-        public virtual void ReduceToVertexCount(int nCount)
+        public virtual void ReduceToVertexCount(int nCount, int maxDegreeOfParallelism)
         {
             ReduceMode = TargetModes.VertexCount;
             TargetCount = Math.Max(3,nCount);
             MinEdgeLength = double.MaxValue;
-            DoReduce();
+            DoReduce(maxDegreeOfParallelism);
         }
 
-        public virtual void ReduceToEdgeLength(double minEdgeLen)
+        public virtual void ReduceToEdgeLength(double minEdgeLen, int maxDegreeOfParallelism)
         {
             ReduceMode = TargetModes.MinEdgeLength;
             TargetCount = 1;
             MinEdgeLength = minEdgeLen;
-            DoReduce();
+            DoReduce(maxDegreeOfParallelism);
         }
 
 
@@ -166,7 +166,7 @@ namespace g3
 
 
 
-        public virtual void FastCollapsePass(double fMinEdgeLength, int nRounds = 1, bool MeshIsClosedHint = false)
+        public virtual void FastCollapsePass(double fMinEdgeLength, int maxDegreeOfParallelism, int nRounds = 1, bool MeshIsClosedHint = false)
         {
             if (mesh.TriangleCount == 0)    // badness if we don't catch this...
                 return;
@@ -226,7 +226,7 @@ namespace g3
             if (Cancelled())
                 return;
 
-            Reproject();
+            Reproject(maxDegreeOfParallelism);
 
             end_pass();
         }
@@ -242,7 +242,7 @@ namespace g3
 
 
         protected QuadricError[] vertQuadrics;
-		protected virtual void InitializeVertexQuadrics()
+		protected virtual void InitializeVertexQuadrics(int maxDegreeOfParallelism)
 		{
 
 			int NT = mesh.MaxTriangleID;
@@ -256,7 +256,7 @@ namespace g3
                         triQuadrics[tid] = new QuadricError(ref n, ref c);
                     }
                 }
-			});
+			}, maxDegreeOfParallelism);
 
 
 			int NV = mesh.MaxVertexID;
@@ -271,7 +271,7 @@ namespace g3
                         //Util.gDevAssert(MathUtil.EpsilonEqual(0, vertQuadrics[i].Evaluate(mesh.GetVertex(i)), MathUtil.Epsilon * 10));
                     }
                 }
-			});
+			}, maxDegreeOfParallelism);
 
 		}
 
@@ -292,7 +292,7 @@ namespace g3
         protected QEdge[] EdgeQuadrics;
         protected IndexPriorityQueue EdgeQueue;
 
-		protected virtual void InitializeQueue()
+		protected virtual void InitializeQueue(int maxDegreeOfParallelism)
 		{
 			int NE = mesh.EdgeCount;
             int MaxEID = mesh.MaxEdgeID;
@@ -312,7 +312,7 @@ namespace g3
                         EdgeQuadrics[eid] = new QEdge(eid, ref Q, ref opt);
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
             // sorted pq insert is faster, so sort edge errors array and index map
             int[] indices = new int[MaxEID];
@@ -415,10 +415,10 @@ namespace g3
 		}
 
 
-		protected virtual void Reproject() {
+		protected virtual void Reproject(int maxDegreeOfParallelism) {
 			begin_project();
 			if (target != null && ProjectionMode == TargetProjectionMode.AfterRefinement) {
-				FullProjectionPass();
+				FullProjectionPass(maxDegreeOfParallelism);
 				DoDebugChecks();
 			}
 			end_project();			
@@ -635,7 +635,7 @@ skip_to_end:
 
 
         // we can do projection in parallel if we have .net 
-        protected virtual void FullProjectionPass()
+        protected virtual void FullProjectionPass(int maxDegreeOfParallelism)
         {
             Action<int> project = (vID) => {
                 if (vertex_is_constrained(vID))
@@ -645,7 +645,7 @@ skip_to_end:
                 mesh.SetVertex(vID, projected);
             };
 
-            gParallel.ForEach<int>(project_vertices(), project);
+            gParallel.ForEach<int>(project_vertices(), project, maxDegreeOfParallelism);
         }
 
 

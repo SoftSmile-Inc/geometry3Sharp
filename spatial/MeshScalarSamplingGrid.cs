@@ -69,7 +69,7 @@ namespace gs
         }
 
 
-        public void Compute()
+        public void Compute(int maxDegreeOfParallelism)
         {
             // figure out origin & dimensions
             AxisAlignedBox3d bounds = Mesh.CachedBounds;
@@ -83,9 +83,9 @@ namespace gs
 
             scalar_grid = new DenseGrid3f();
             if ( ComputeMode == ComputeModes.FullGrid )
-                make_grid_dense(grid_origin, (float)CellSize, ni, nj, nk, scalar_grid);
+                make_grid_dense(grid_origin, (float)CellSize, ni, nj, nk, scalar_grid, maxDegreeOfParallelism);
             else
-                make_grid(grid_origin, (float)CellSize, ni, nj, nk, scalar_grid);
+                make_grid(grid_origin, (float)CellSize, ni, nj, nk, scalar_grid, maxDegreeOfParallelism);
         }
 
 
@@ -134,7 +134,8 @@ namespace gs
 
         void make_grid(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f scalars)
+                             DenseGrid3f scalars,
+                             int maxDegreeOfParallelism)
         {
             scalars.resize(ni, nj, nk);
             scalars.assign(float.MaxValue); // sentinel
@@ -150,7 +151,7 @@ namespace gs
             // compute unsigned SDF
             MeshSignedDistanceGrid sdf = new MeshSignedDistanceGrid(Mesh, CellSize) { ComputeSigns = false };
             sdf.CancelF = this.CancelF;
-            sdf.Compute();
+            sdf.Compute(maxDegreeOfParallelism);
             if (CancelF())
                 return;
 
@@ -173,7 +174,7 @@ namespace gs
                         scalars[ijk] = (float)ScalarF(gx);
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
             if (CancelF())
                 return;
 
@@ -244,7 +245,7 @@ namespace gs
                             }
                         }
                     }
-                });
+                }, maxDegreeOfParallelism);
                 if (DebugPrint) System.Console.WriteLine("front has {0} voxels", queue.Count);
                 if (queue.Count == 0)
                     break;
@@ -272,7 +273,7 @@ namespace gs
                 return;
 
             // fill in the rest of the grid by propagating know values
-            fill_spans(ni, nj, nk, scalars);
+            fill_spans(ni, nj, nk, scalars, maxDegreeOfParallelism);
 
             if (DebugPrint) System.Console.WriteLine("done sweep");
 
@@ -290,7 +291,8 @@ namespace gs
 
         void make_grid_dense(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f scalars)
+                             DenseGrid3f scalars,
+                             int maxDegreeOfParallelism)
         {
             scalars.resize(ni, nj, nk);
 
@@ -304,7 +306,7 @@ namespace gs
 
                 Vector3d gx = new Vector3d((float)ijk.x * dx + origin[0], (float)ijk.y * dx + origin[1], (float)ijk.z * dx + origin[2]);
                 scalars[ijk] = (float)ScalarF(gx);
-            });
+            }, maxDegreeOfParallelism);
 
         }   // end make_level_set_3
 
@@ -312,7 +314,7 @@ namespace gs
 
 
 
-        void fill_spans(int ni, int nj, int nk, DenseGrid3f scalars)
+        void fill_spans(int ni, int nj, int nk, DenseGrid3f scalars, int maxDegreeOfParallelism)
         {
             gParallel.ForEach(gIndices.Grid3IndicesYZ(nj, nk), (idx) => {
                 int j = idx.y, k = idx.z;
@@ -328,7 +330,7 @@ namespace gs
                             last = 0;
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
         }
 
 

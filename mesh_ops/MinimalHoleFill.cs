@@ -49,7 +49,7 @@ namespace gs
 
         double[] curvatures;
 
-        public bool Apply(ProgressCancel? progressCancel = null)
+        public bool Apply(int maxDegreeOfParallelism, ProgressCancel? progressCancel = null)
         {
             // do a simple fill
             SimpleHoleFiller simplefill = new SimpleHoleFiller(Mesh, FillLoop);
@@ -110,7 +110,7 @@ namespace gs
             //remesh1.SetTargetEdgeLength(remesh_target_len / 2);       // would this speed things up? on large regions?
             //remesh1.FastestRemesh();
             remesh1.SetTargetEdgeLength(remesh_target_len);
-            if (!remesh1.FastestRemesh())
+            if (!remesh1.FastestRemesh(maxDegreeOfParallelism))
                 return false;
 
             /*

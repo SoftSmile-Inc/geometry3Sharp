@@ -88,11 +88,11 @@ namespace g3
 
 
         // returns this*this (requires less memory)
-        public SymmetricSparseMatrix Square(bool bParallel = true)
+        public SymmetricSparseMatrix Square(int maxDegreeOfParallelism, bool bParallel = true)
         {
             SymmetricSparseMatrix R = new SymmetricSparseMatrix();
             PackedSparseMatrix M = new PackedSparseMatrix(this);
-            M.Sort();
+            M.Sort(maxDegreeOfParallelism);
 
             // Parallel variant is vastly faster, uses spinlock to control access to R
             if (bParallel) {
@@ -113,7 +113,7 @@ namespace g3
                             }
                         }
                     }
-                });
+                }, maxDegreeOfParallelism);
 
             } else {
                 for (int r1i = 0; r1i < N; r1i++) {
@@ -137,24 +137,24 @@ namespace g3
         /// <summary>
         /// Returns this*this, as a packed sparse matrix. Computes in parallel.
         /// </summary>
-        public PackedSparseMatrix SquarePackedParallel()
+        public PackedSparseMatrix SquarePackedParallel(int maxDegreeOfParallelism)
         {
             PackedSparseMatrix M = new PackedSparseMatrix(this);
-            M.Sort();
-            return M.Square();
+            M.Sort(maxDegreeOfParallelism);
+            return M.Square(maxDegreeOfParallelism);
         }
 
 
 
 
 
-        public SymmetricSparseMatrix Multiply(SymmetricSparseMatrix M2)
+        public SymmetricSparseMatrix Multiply(SymmetricSparseMatrix M2, int maxDegreeOfParallelism)
         {
             SymmetricSparseMatrix R = new SymmetricSparseMatrix();
-            Multiply(M2, ref R);
+            Multiply(M2, ref R, maxDegreeOfParallelism);
             return R;
         }
-        public void Multiply(SymmetricSparseMatrix M2, ref SymmetricSparseMatrix R, bool bParallel = true)
+        public void Multiply(SymmetricSparseMatrix M2, ref SymmetricSparseMatrix R, int maxDegreeOfParallelism, bool bParallel = true)
         {
             // testing code
             //multiply_slow(M2, ref R);
@@ -162,7 +162,7 @@ namespace g3
             //multiply_fast(M2, ref R2);
             //Debug.Assert(R.EpsilonEqual(R2));
 
-            multiply_fast(M2, ref R, bParallel);
+            multiply_fast(M2, ref R, bParallel, maxDegreeOfParallelism);
         }
 
 
@@ -170,7 +170,7 @@ namespace g3
         /// Construct packed versions of input matrices, and then use sparse row/column dot
         /// to compute elements of output matrix. This is faster. But still relatively expensive.
         /// </summary>
-        void multiply_fast(SymmetricSparseMatrix M2in, ref SymmetricSparseMatrix Rin, bool bParallel)
+        void multiply_fast(SymmetricSparseMatrix M2in, ref SymmetricSparseMatrix Rin, bool bParallel, int maxDegreeOfParallelism)
         {
             int N = Rows;
             if (M2in.Rows != N)
@@ -181,9 +181,9 @@ namespace g3
             SymmetricSparseMatrix R = Rin;      // require alias for use in lambda below
 
             PackedSparseMatrix M = new PackedSparseMatrix(this);
-            M.Sort();
+            M.Sort(maxDegreeOfParallelism);
             PackedSparseMatrix M2 = new PackedSparseMatrix(M2in, true);
-            M2.Sort();
+            M2.Sort(maxDegreeOfParallelism);
 
             // Parallel variant is vastly faster, uses spinlock to control access to R
             if (bParallel) {
@@ -204,7 +204,7 @@ namespace g3
                             }
                         }
                     }
-                });
+                }, maxDegreeOfParallelism);
 
             } else {
 

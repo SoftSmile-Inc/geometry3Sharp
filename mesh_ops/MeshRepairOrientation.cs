@@ -94,16 +94,16 @@ namespace gs
 
 
 
-		public void ComputeStatistics()
+		public void ComputeStatistics(int maxDegreeOfParallelism)
 		{
 			var s = this.Spatial;  // make sure this exists
             // Cannot do in parallel because we set a filter on spatial DS. 
             // Also we are doing rays in parallel anyway...
             foreach ( var c in Components ) {
-                compute_statistics(c);
+                compute_statistics(c, maxDegreeOfParallelism);
             }
 		}
-		void compute_statistics(Component c)
+		void compute_statistics(Component c, int maxDegreeOfParallelism)
 		{
 			int NC = c.triangles.Count;
 			c.inFacing = c.outFacing = 0;
@@ -152,14 +152,14 @@ namespace gs
 
                     count_lock.Exit();
 				}
-			});
+			}, maxDegreeOfParallelism);
         }
 
 
 
-		public void SolveGlobalOrientation()
+		public void SolveGlobalOrientation(int maxDegreeOfParallelism)
 		{
-			ComputeStatistics();
+			ComputeStatistics(maxDegreeOfParallelism);
 			MeshEditor editor = new MeshEditor(Mesh);
 			foreach (Component c in Components) {
 				if (c.inFacing > c.outFacing) {

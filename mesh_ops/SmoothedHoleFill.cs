@@ -74,7 +74,7 @@ namespace gs
         }
 
 
-        public bool Apply()
+        public bool Apply(int maxDegreeOfParallelism)
         {
             EdgeLoop useLoop = null;
 
@@ -127,7 +127,7 @@ namespace gs
                 extrude.ExtrudedPositionF = (v, n, vid) => {
                     return v + OffsetDistance * OffsetDirection;
                 };
-                if (!extrude.Extrude())
+                if (!extrude.Extrude(maxDegreeOfParallelism))
                     return false;
                 tris.Select(extrude.JoinTriangles);
             }
@@ -148,7 +148,7 @@ namespace gs
                 if (ConfigureRemesherF != null)
                     ConfigureRemesherF(remesh, true);
                 for (int k = 0; k < InitialRemeshPasses; ++k)
-                    remesh.BasicRemeshPass();
+                    remesh.BasicRemeshPass(maxDegreeOfParallelism);
                 remesh.BackPropropagate();
 
                 tris = new MeshFaceSelection(Mesh);
@@ -159,11 +159,11 @@ namespace gs
 
             if (ConstrainToHoleInterior) {
                 for (int k = 0; k < SmoothSolveIterations; ++k ) {
-                    smooth_and_remesh_preserve(tris, k == SmoothSolveIterations-1);
+                    smooth_and_remesh_preserve(tris, k == SmoothSolveIterations-1, maxDegreeOfParallelism);
                     tris = new MeshFaceSelection(Mesh); tris.Select(FillTriangles);
                 }
             } else {
-                smooth_and_remesh(tris);
+                smooth_and_remesh(tris, maxDegreeOfParallelism);
                 tris = new MeshFaceSelection(Mesh); tris.Select(FillTriangles);
             }
 
@@ -176,7 +176,7 @@ namespace gs
 
 
 
-        void smooth_and_remesh_preserve(MeshFaceSelection tris, bool bFinal)
+        void smooth_and_remesh_preserve(MeshFaceSelection tris, bool bFinal, int maxDegreeOfParallelism)
         {
             if (EnableLaplacianSmooth) {
                 LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, true);
@@ -192,7 +192,7 @@ namespace gs
                 if (ConfigureRemesherF != null)
                     ConfigureRemesherF(remesh2, false);
                 for (int k = 0; k < 10; ++k)
-                    remesh2.BasicRemeshPass();
+                    remesh2.BasicRemeshPass(maxDegreeOfParallelism);
                 remesh2.BackPropropagate();
 
                 FillTriangles = remesh2.CurrentBaseTriangles;
@@ -203,7 +203,7 @@ namespace gs
 
 
 
-        void smooth_and_remesh(MeshFaceSelection tris)
+        void smooth_and_remesh(MeshFaceSelection tris, int maxDegreeOfParallelism)
         {
             if (EnableLaplacianSmooth) {
                 LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, false);
@@ -221,7 +221,7 @@ namespace gs
                 if (ConfigureRemesherF != null)
                     ConfigureRemesherF(remesh2, false);
                 for (int k = 0; k < 10; ++k)
-                    remesh2.BasicRemeshPass();
+                    remesh2.BasicRemeshPass(maxDegreeOfParallelism);
                 remesh2.BackPropropagate();
 
                 FillTriangles = remesh2.CurrentBaseTriangles;

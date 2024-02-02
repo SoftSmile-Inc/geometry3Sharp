@@ -16,9 +16,9 @@ namespace g3
 		public int Subdivisions = 1;
         public MeshInsertPolygon Insert;
 
-        override public MeshGenerator Generate()
+        override public MeshGenerator Generate(int maxDegreeOfParallelism)
         {
-            DMesh3 base_mesh = ComputeResult(out Insert);
+            DMesh3 base_mesh = ComputeResult(maxDegreeOfParallelism, out Insert);
 
             DMesh3 compact = new DMesh3(base_mesh, true);
 
@@ -48,7 +48,7 @@ namespace g3
         /// coming back than we get by using Generate() api. Note that resulting
         /// mesh is *not* compacted.
         /// </summary>
-        public DMesh3 ComputeResult(out MeshInsertPolygon insertion)
+        public DMesh3 ComputeResult(int maxDegreeOfParallelism, out MeshInsertPolygon insertion)
         {
             AxisAlignedBox2d bounds = Polygon.Bounds;
             double padding = 0.1 * bounds.DiagonalLength;
@@ -62,7 +62,7 @@ namespace g3
 			rectgen.IndicesMap = new Index2i(1, 2);
 			rectgen.UVMode = UVMode;
 			rectgen.Clockwise = true;   // MeshPolygonInserter assumes mesh faces are CW? (except code says CCW...)
-			rectgen.Generate();
+			rectgen.Generate(maxDegreeOfParallelism);
 			DMesh3 base_mesh = new DMesh3();
 			rectgen.MakeMesh(base_mesh);
 
@@ -76,7 +76,7 @@ namespace g3
             
             insertion = insert;
             
-            bool bOK = insert.Insert();
+            bool bOK = insert.Insert(maxDegreeOfParallelism);
             if (!bOK)
                 throw new Exception("TriangulatedPolygonGenerator: failed to Insert()");
 

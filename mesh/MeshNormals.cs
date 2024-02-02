@@ -34,9 +34,9 @@ namespace g3
         }
 
 
-        public void Compute()
+        public void Compute(int maxDegreeOfParallelism)
         {
-            Compute_FaceAvg_AreaWeighted();
+            Compute_FaceAvg_AreaWeighted(maxDegreeOfParallelism);
         }
 
 
@@ -63,7 +63,7 @@ namespace g3
 
 
         // TODO: parallel version, cache tri normals
-        void Compute_FaceAvg_AreaWeighted()
+        void Compute_FaceAvg_AreaWeighted(int maxDegreeOfParallelism)
         {
             int NV = Mesh.MaxVertexID;
             if ( NV != Normals.size ) 
@@ -86,23 +86,23 @@ namespace g3
                 Normals[tri.b] += a * N;
                 Normals[tri.c] += a * N;
                 Normals_lock.Exit();
-            });
+            }, maxDegreeOfParallelism);
 
             gParallel.BlockStartEnd(0, NV - 1, (vi_start, vi_end) => {
                 for (int vi = vi_start; vi <= vi_end; vi++) {
                     if (Normals[vi].LengthSquared > MathUtil.ZeroTolerancef)
                         Normals[vi] = Normals[vi].Normalized;
                 }
-            });
+            }, maxDegreeOfParallelism);
         }
 
 
 
 
-        public static void QuickCompute(DMesh3 mesh)
+        public static void QuickCompute(DMesh3 mesh, int maxDegreeOfParallelism)
         {
             MeshNormals normals = new MeshNormals(mesh);
-            normals.Compute();
+            normals.Compute(maxDegreeOfParallelism);
             normals.CopyTo(mesh);
         }
 

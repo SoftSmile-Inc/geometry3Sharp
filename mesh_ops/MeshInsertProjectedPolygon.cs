@@ -122,7 +122,7 @@ namespace gs
         }
 
 
-        public bool Insert()
+        public bool Insert(int maxDegreeOfParallelism)
         {
             Func<int, bool> is_contained_v = (vid) => {
                 Vector3d v = Mesh.GetVertex(vid);
@@ -179,7 +179,7 @@ namespace gs
 
             MeshInsertUVPolyCurve insertUV = new MeshInsertUVPolyCurve(roiMesh, Polygon);
             //insertUV.Validate()
-            bool bOK = insertUV.Apply();
+            bool bOK = insertUV.Apply(maxDegreeOfParallelism);
             if (!bOK)
                 throw new Exception("insertUV.Apply() failed");
 

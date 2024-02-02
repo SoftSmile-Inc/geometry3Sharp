@@ -24,7 +24,7 @@ namespace g3
         DMesh3 cutTargetMesh;
         DMesh3 cutToolMesh;
 
-        public bool Compute()
+        public bool Compute(int maxDegreeOfParallelism)
         {
             // Alternate strategy:
             //   - don't do RemoveContained
@@ -39,8 +39,8 @@ namespace g3
                 CutMesh = Tool,
                 VertexSnapTol = VertexSnapTol
             };
-            cutTargetOp.Compute();
-            cutTargetOp.RemoveContained();
+            cutTargetOp.Compute(maxDegreeOfParallelism);
+            cutTargetOp.RemoveContained(maxDegreeOfParallelism);
             cutTargetMesh = cutTargetOp.Target;
 
             cutToolOp = new MeshMeshCut() {
@@ -48,8 +48,8 @@ namespace g3
                 CutMesh = Target,
                 VertexSnapTol = VertexSnapTol
             };
-            cutToolOp.Compute();
-            cutToolOp.RemoveContained();
+            cutToolOp.Compute(maxDegreeOfParallelism);
+            cutToolOp.RemoveContained(maxDegreeOfParallelism);
             cutToolMesh = cutToolOp.Target;
 
             resolve_vtx_pairs();

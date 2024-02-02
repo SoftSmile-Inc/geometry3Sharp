@@ -1354,13 +1354,13 @@ namespace g3
         /// <summary>
         /// Fast approximation of winding number using far-field approximations
         /// </summary>
-        public virtual double FastWindingNumber(Vector3d p)
+        public virtual double FastWindingNumber(Vector3d p, int maxDegreeOfParallelism)
         {
             if (mesh_timestamp != mesh.ShapeTimestamp)
                 throw new Exception("DMeshAABBTree3.FastWindingNumber: mesh has been modified since tree construction");
 
             if (FastWindingCache == null || fast_winding_cache_timestamp != mesh.ShapeTimestamp) {
-                build_fast_winding_cache();
+                build_fast_winding_cache(maxDegreeOfParallelism);
                 fast_winding_cache_timestamp = mesh.ShapeTimestamp;
             }
 
@@ -1429,14 +1429,14 @@ namespace g3
         Dictionary<int, FWNInfo> FastWindingCache;
         int fast_winding_cache_timestamp = -1;
 
-        protected void build_fast_winding_cache()
+        protected void build_fast_winding_cache(int maxDegreeOfParallelism)
         {
             // set this to a larger number to ignore caches if number of triangles is too small.
             // (seems to be no benefit to doing this...is holdover from tree-decomposition FWN code)
             int WINDING_CACHE_THRESH = 1;
 
             //MeshTriInfoCache triCache = null;
-            MeshTriInfoCache triCache = new MeshTriInfoCache(mesh);
+            MeshTriInfoCache triCache = new MeshTriInfoCache(mesh, maxDegreeOfParallelism);
 
             FastWindingCache = new Dictionary<int, FWNInfo>();
             HashSet<int> root_hash;

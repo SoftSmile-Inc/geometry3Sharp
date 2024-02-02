@@ -19,7 +19,7 @@ namespace g3
         // last panel will not have UVs going from 1 to 0
         public bool NoSharedVertices = false;
 
-        override public MeshGenerator Generate()
+        override public MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             bool bClosed = ((EndAngleDeg - StartAngleDeg) > 359.99f);
             int nRingSize = (NoSharedVertices && bClosed) ? Slices + 1 : Slices;
@@ -81,7 +81,7 @@ namespace g3
         // set to true if you are going to texture this cylinder or want sharp edges
         public bool NoSharedVertices = false;
 
-        override public MeshGenerator Generate()
+        override public MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             bool bClosed = ((EndAngleDeg - StartAngleDeg) > 359.99f);
             int nRingSize = (NoSharedVertices && bClosed) ? Slices + 1 : Slices;
@@ -218,7 +218,7 @@ namespace g3
         public bool NoSharedVertices = false;
 
 
-        override public MeshGenerator Generate()
+        override public MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             bool bClosed = ((EndAngleDeg - StartAngleDeg) > 359.99f);
             int nRingSize = (NoSharedVertices && bClosed) ? Slices + 1 : Slices;
@@ -333,7 +333,7 @@ namespace g3
         public int startCapCenterIndex = -1;
         public int endCapCenterIndex = -1;
 
-        override public MeshGenerator Generate()
+        override public MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             int nRings = (NoSharedVertices) ? 2 * (Sections.Length-1) : Sections.Length;
             int nRingSize = (NoSharedVertices) ? Slices + 1 : Slices;

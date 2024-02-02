@@ -197,7 +197,7 @@ namespace g3
 
             if (bRecomputeBoundaryNormals) {
                 foreach ( int basevid in Region.BaseBorderV ) {
-                    Vector3d n = MeshNormals.QuickCompute(Region.BaseMesh, basevid);
+                    Vector3d n = MeshNormals.QuickCompute(Region.BaseMesh, vid: basevid);
                     Region.BaseMesh.SetVertexNormal(basevid, (Vector3f)n);
                 }
             }

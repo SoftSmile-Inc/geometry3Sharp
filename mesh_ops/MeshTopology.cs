@@ -201,7 +201,7 @@ namespace gs
 
 
 
-        public DMesh3 MakeElementsMesh(Polygon2d spanProfile, Polygon2d loopProfile)
+        public DMesh3 MakeElementsMesh(Polygon2d spanProfile, Polygon2d loopProfile, int maxDegreeOfParallelism)
         {
             DMesh3 result = new DMesh3();
             validate_topology();
@@ -209,13 +209,13 @@ namespace gs
             foreach (EdgeSpan span in Spans) {
                 DCurve3 curve = span.ToCurve(Mesh);
                 TubeGenerator tubegen = new TubeGenerator(curve, spanProfile);
-                MeshEditor.Append(result, tubegen.Generate().MakeDMesh());
+                MeshEditor.Append(result, tubegen.Generate(maxDegreeOfParallelism).MakeDMesh());
             }
 
             foreach (EdgeLoop loop in Loops) {
                 DCurve3 curve = loop.ToCurve(Mesh);
                 TubeGenerator tubegen = new TubeGenerator(curve, loopProfile);
-                MeshEditor.Append(result, tubegen.Generate().MakeDMesh());
+                MeshEditor.Append(result, tubegen.Generate(maxDegreeOfParallelism).MakeDMesh());
             }
 
             return result;

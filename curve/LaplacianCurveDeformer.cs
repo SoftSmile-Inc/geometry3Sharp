@@ -86,7 +86,7 @@ namespace g3
         }
 
 
-        public void Initialize()
+        public void Initialize(int maxDegreeOfParallelism)
         {
             int NV = Curve.VertexCount;
             ToCurveV = new int[NV];
@@ -144,7 +144,7 @@ namespace g3
             if (UseSoftConstraintNormalEquations) {
                 //M = M.Multiply(M);
                 // only works if M is symmetric!!
-                PackedM = M.SquarePackedParallel();
+                PackedM = M.SquarePackedParallel(maxDegreeOfParallelism);
             } else {
                 PackedM = new PackedSparseMatrix(M);
             }
@@ -216,10 +216,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleCG(Vector3d[] Result)
+        public bool SolveMultipleCG(Vector3d[] Result, int maxDegreeOfParallelism)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -231,7 +231,7 @@ namespace g3
 
             Action<double[], double[]> CombinedMultiply = (X, B) => {
                 //PackedM.Multiply(X, B);
-                PackedM.Multiply_Parallel(X, B);
+                PackedM.Multiply_Parallel(X, B, maxDegreeOfParallelism);
 
                 for (int i = 0; i < N; ++i)
                     B[i] += WeightsM[i, i] * X[i];
@@ -259,10 +259,10 @@ namespace g3
             bool[] ok = new bool[Solvers.Count];
 
             gParallel.ForEach(Interval1i.Range(Solvers.Count), (i) => {
-                ok[i] = Solvers[i].Solve();
+                ok[i] = Solvers[i].Solve(maxDegreeOfParallelism);
                 // preconditioned solve is slower =\
                 //ok[i] = solvers[i].SolvePreconditioned();
-            });
+            }, maxDegreeOfParallelism);
 
             ConvergeFailed = false;
             foreach ( bool b in ok ) {
@@ -292,10 +292,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleRHS(Vector3d[] Result)
+        public bool SolveMultipleRHS(Vector3d[] Result, int maxDegreeOfParallelism)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -304,10 +304,10 @@ namespace g3
             double[][] X = BufferUtil.InitNxM(3, N, new double[][] { Px, Py, Pz });
 
             Action<double[][], double[][]> CombinedMultiply = (Xt, Bt) => {
-                PackedM.Multiply_Parallel_3(Xt, Bt);
+                PackedM.Multiply_Parallel_3(Xt, Bt, maxDegreeOfParallelism);
                 gParallel.ForEach(Interval1i.Range(3), (j) => {
                     BufferUtil.MultiplyAdd(Bt[j], WeightsM.D, Xt[j]);
-                });
+                }, maxDegreeOfParallelism);
             };
 
             SparseSymmetricCGMultipleRHS Solver = new SparseSymmetricCGMultipleRHS() {
@@ -316,7 +316,7 @@ namespace g3
                 UseXAsInitialGuess = true
             };
 
-            bool ok = Solver.Solve();
+            bool ok = Solver.Solve(maxDegreeOfParallelism);
 
             if (ok == false)
                 return false;
@@ -343,22 +343,22 @@ namespace g3
 
 
 
-        public bool Solve(Vector3d[] Result)
+        public bool Solve(Vector3d[] Result, int maxDegreeOfParallelism)
         {
             // for small problems, faster to use separate CGs?
             if ( Curve.VertexCount < 10000 )
-                return SolveMultipleCG(Result);
+                return SolveMultipleCG(Result, maxDegreeOfParallelism);
             else
-                return SolveMultipleRHS(Result);
+                return SolveMultipleRHS(Result, maxDegreeOfParallelism);
         }
 
 
 
-        public bool SolveAndUpdateCurve()
+        public bool SolveAndUpdateCurve(int maxDegreeOfParallelism)
         {
             int N = Curve.VertexCount;
             Vector3d[] Result = new Vector3d[N];
-            if ( Solve(Result) == false )
+            if ( Solve(Result, maxDegreeOfParallelism) == false )
                 return false;
             for (int i = 0; i < N; ++i) {
                 Curve[i] = Result[i];

@@ -22,7 +22,7 @@ namespace g3
             WantUVs = false;
         }
 
-        public override MeshGenerator Generate()
+        public override MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             int N = (PointIndicesCount == -1) ? PointIndices.Count() : PointIndicesCount;
 
@@ -58,14 +58,15 @@ namespace g3
         /// </summary>
         public static DMesh3 Generate(IList<int> indices,
             Func<int, Vector3d> PointF, Func<int, Vector3d> NormalF,
-            double radius)
+            double radius,
+            int maxDegreeOfParallelism)
         {
             var gen = new PointSplatsGenerator() {
                 PointIndices = indices,
                 PointIndicesCount = indices.Count,
                 PointF = PointF, NormalF = NormalF, Radius = radius
             };
-            return gen.Generate().MakeDMesh();
+            return gen.Generate(maxDegreeOfParallelism).MakeDMesh();
         }
 
     }

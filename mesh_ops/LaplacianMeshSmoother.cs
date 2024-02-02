@@ -69,7 +69,7 @@ namespace g3
         }
 
 
-        public void Initialize()
+        public void Initialize(int maxDegreeOfParallelism)
         {
             ToMeshV = new int[Mesh.MaxVertexID];
             ToIndex = new int[Mesh.MaxVertexID];
@@ -119,7 +119,7 @@ namespace g3
             if (UseSoftConstraintNormalEquations) {
                 //M = M.Multiply(M);
                 // only works if M is symmetric!!
-                PackedM = M.SquarePackedParallel();
+                PackedM = M.SquarePackedParallel(maxDegreeOfParallelism);
             } else {
                 PackedM = new PackedSparseMatrix(M);
             }
@@ -198,10 +198,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleCG(Vector3d[] Result, int maxIterations = int.MaxValue)
+        public bool SolveMultipleCG(Vector3d[] Result, int maxDegreeOfParallelism, int maxIterations = int.MaxValue)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -212,7 +212,7 @@ namespace g3
 
             Action<double[], double[]> CombinedMultiply = (X, B) => {
                 //PackedM.Multiply(X, B);
-                PackedM.Multiply_Parallel(X, B);
+                PackedM.Multiply_Parallel(X, B, maxDegreeOfParallelism);
 
                 for (int i = 0; i < N; ++i)
                     B[i] += WeightsM.D[i] * X[i];
@@ -233,9 +233,9 @@ namespace g3
             int[] indices = new int[3] { 0, 1, 2 };
 
             // preconditioned solve is marginally faster
-            Action<int> SolveF = (i) => {  ok[i] = solvers[i].SolvePreconditioned(); };
+            Action<int> SolveF = (i) => {  ok[i] = solvers[i].SolvePreconditioned(maxDegreeOfParallelism); };
             //Action<int> SolveF = (i) => {  ok[i] = solvers[i].Solve(); };
-            gParallel.ForEach(indices, SolveF);
+            gParallel.ForEach(indices, SolveF, maxDegreeOfParallelism);
 
             if (ok[0] == false || ok[1] == false || ok[2] == false)
                 return false;
@@ -261,10 +261,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleRHS(Vector3d[] Result, int maxIterations = int.MaxValue)
+        public bool SolveMultipleRHS(Vector3d[] Result, int maxDegreeOfParallelism, int maxIterations = int.MaxValue)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -273,16 +273,16 @@ namespace g3
             double[][] X = BufferUtil.InitNxM(3, N, new double[][] { Px, Py, Pz } );
 
             Action<double[][], double[][]> CombinedMultiply = (Xt, Bt) => {
-                PackedM.Multiply_Parallel_3(Xt, Bt);
+                PackedM.Multiply_Parallel_3(Xt, Bt, maxDegreeOfParallelism);
                 gParallel.ForEach(Interval1i.Range(3), (j) => {
                     BufferUtil.MultiplyAdd(Bt[j], WeightsM.D, Xt[j]);
-                });
+                }, maxDegreeOfParallelism);
             };
 
             Action<double[][], double[][]> CombinedPreconditionerMultiply = (Xt, Bt) => {
                 gParallel.ForEach(Interval1i.Range(3), (j) => {
                     Preconditioner.Multiply(Xt[j], Bt[j]);
-                });
+                }, maxDegreeOfParallelism);
             };
 
             SparseSymmetricCGMultipleRHS Solver = new SparseSymmetricCGMultipleRHS() { 
@@ -293,7 +293,7 @@ namespace g3
 
             // preconditioned solve is marginally faster
             //bool ok = Solver.Solve();
-            bool ok = Solver.SolvePreconditioned();
+            bool ok = Solver.SolvePreconditioned(maxDegreeOfParallelism);
 
             if (ok == false)
                 return false;

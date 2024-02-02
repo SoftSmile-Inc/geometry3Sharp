@@ -69,7 +69,7 @@ namespace g3
         }
 
 
-        public void Initialize()
+        public void Initialize(int maxDegreeOfParallelism)
         {
             ToMeshV = new int[Mesh.MaxVertexID];
             ToIndex = new int[Mesh.MaxVertexID];
@@ -120,7 +120,7 @@ namespace g3
             if (UseSoftConstraintNormalEquations) {
                 //M = M.Multiply(M);
                 // only works if M is symmetric!!
-                PackedM = M.SquarePackedParallel();
+                PackedM = M.SquarePackedParallel(maxDegreeOfParallelism);
             } else {
                 PackedM = new PackedSparseMatrix(M);
             }
@@ -192,10 +192,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleCG(Vector3d[] Result, bool noMaxIterations = false)
+        public bool SolveMultipleCG(Vector3d[] Result, int maxDegreeOfParallelism, bool noMaxIterations = false)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -207,7 +207,7 @@ namespace g3
 
             Action<double[], double[]> CombinedMultiply = (X, B) => {
                 //PackedM.Multiply(X, B);
-                PackedM.Multiply_Parallel(X, B);
+                PackedM.Multiply_Parallel(X, B, maxDegreeOfParallelism);
 
                 for (int i = 0; i < N; ++i)
                     B[i] += WeightsM[i, i] * X[i];
@@ -237,8 +237,8 @@ namespace g3
 
             // preconditioned solve is slower =\
             //Action<int> SolveF = (i) => {  ok[i] = solvers[i].SolvePreconditioned(); };
-            Action<int> SolveF = (i) => {  ok[i] = solvers[i].Solve(); };
-            gParallel.ForEach(indices, SolveF);
+            Action<int> SolveF = (i) => {  ok[i] = solvers[i].Solve(maxDegreeOfParallelism); };
+            gParallel.ForEach(indices, SolveF, maxDegreeOfParallelism);
 
 //            if (ok[0] == false || ok[1] == false || ok[2] == false)
 //                return false;
@@ -265,10 +265,10 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleRHS(Vector3d[] Result, bool noMaxIterations = false)
+        public bool SolveMultipleRHS(Vector3d[] Result, int maxDegreeOfParallelism, bool noMaxIterations = false)
         {
             if (WeightsM == null)
-                Initialize();       // force initialize...
+                Initialize(maxDegreeOfParallelism);       // force initialize...
 
             UpdateForSolve();
 
@@ -277,10 +277,10 @@ namespace g3
             double[][] X = BufferUtil.InitNxM(3, N, new double[][] { Px, Py, Pz });
 
             Action<double[][], double[][]> CombinedMultiply = (Xt, Bt) => {
-                PackedM.Multiply_Parallel_3(Xt, Bt);
+                PackedM.Multiply_Parallel_3(Xt, Bt, maxDegreeOfParallelism);
                 gParallel.ForEach(Interval1i.Range(3), (j) => {
                     BufferUtil.MultiplyAdd(Bt[j], WeightsM.D, Xt[j]);
-                });
+                }, maxDegreeOfParallelism);
             };
 
             SparseSymmetricCGMultipleRHS Solver = new SparseSymmetricCGMultipleRHS() {
@@ -293,7 +293,7 @@ namespace g3
                 Solver.MaxIterations = int.MaxValue;
             }
 
-            bool ok = Solver.Solve();
+            bool ok = Solver.Solve(maxDegreeOfParallelism);
 
             if (ok == false)
                 return false;
@@ -320,22 +320,22 @@ namespace g3
 
 
 
-        public bool Solve(Vector3d[] Result, bool noMaxIterations = false)
+        public bool Solve(Vector3d[] Result, int maxDegreeOfParallelism, bool noMaxIterations = false)
         {
             // for small problems, faster to use separate CGs?
             if ( Mesh.VertexCount < 10000 )
-                return SolveMultipleCG(Result, noMaxIterations);
+                return SolveMultipleCG(Result, maxDegreeOfParallelism, noMaxIterations);
             else
-                return SolveMultipleRHS(Result, noMaxIterations);
+                return SolveMultipleRHS(Result, maxDegreeOfParallelism, noMaxIterations);
         }
 
 
 
-        public bool SolveAndUpdateMesh(bool noMaxIterations = false)
+        public bool SolveAndUpdateMesh(int maxDegreeOfParallelism, bool noMaxIterations = false)
         {
             int N = Mesh.MaxVertexID;
             Vector3d[] Result = new Vector3d[N];
-            if ( Solve(Result, noMaxIterations) == false )
+            if ( Solve(Result, maxDegreeOfParallelism, noMaxIterations) == false )
                 return false;
             for (int i = 0; i < N; ++i) {
                 if (Mesh.IsVertex(i)) {

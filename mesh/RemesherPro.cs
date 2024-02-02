@@ -96,7 +96,7 @@ namespace gs
         /// <summary>
         /// Converge on remeshed result as quickly as possible
         /// </summary>
-        public bool FastestRemesh(int nMaxIterations = 25, bool bDoFastSplits = true)
+        public bool FastestRemesh(int maxDegreeOfParallelism, int nMaxIterations = 25, bool bDoFastSplits = true)
         {
             ResetQueue();
 
@@ -132,7 +132,7 @@ namespace gs
                 if (Cancelled())
                     return false;
                 ProjectionMode = (k % 2 == 0) ? TargetProjectionMode.NoProjection : saveMode;
-                RemeshIteration();
+                RemeshIteration(maxDegreeOfParallelism);
             }
 
             // final pass w/ full projection
@@ -141,7 +141,7 @@ namespace gs
             if (Cancelled())
                 return false;
 
-            return RemeshIteration();
+            return RemeshIteration(maxDegreeOfParallelism);
         }
 
 
@@ -153,7 +153,7 @@ namespace gs
         /// This is a remesh that tries to recover sharp edges by aligning triangles to face normals
         /// of our projection target (similar to Ohtake RZN-flow). 
         /// </summary>
-        public void SharpEdgeReprojectionRemesh(int nRemeshIterations, int nTuneIterations, bool bDoFastSplits = true)
+        public void SharpEdgeReprojectionRemesh(int nRemeshIterations, int nTuneIterations, int maxDegreeOfParallelism, bool bDoFastSplits = true)
         {
             if (ProjectionTarget == null || ProjectionTarget is IOrientedProjectionTarget == false)
                 throw new Exception("RemesherPro.SharpEdgeReprojectionRemesh: cannot call this without a ProjectionTarget that has normals");
@@ -197,7 +197,7 @@ namespace gs
             for (int k = 0; k < nRemeshIterations; ++k) {
                 if (Cancelled())
                     break;
-                RemeshIteration();
+                RemeshIteration(maxDegreeOfParallelism);
                 if ( k > nRemeshIterations/2 )
                     SmoothSpeedT *= 0.9f;
             }
@@ -212,7 +212,7 @@ namespace gs
             for (int k = 0; k < nTuneIterations; ++k) {
                 if (Cancelled())
                     break;
-                TrackedFaceProjectionPass();
+                TrackedFaceProjectionPass(maxDegreeOfParallelism);
                 //RemeshIteration();
             }
 
@@ -334,7 +334,7 @@ namespace gs
 
 
 
-        public virtual bool RemeshIteration()
+        public virtual bool RemeshIteration(int maxDegreeOfParallelism)
         {
             if (mesh.TriangleCount == 0)    // badness if we don't catch this...
                 return false;
@@ -404,7 +404,7 @@ namespace gs
 
             begin_smooth();
             if (EnableSmoothing && SmoothSpeedT > 0) {
-                TrackedSmoothPass(EnableParallelSmooth);
+                TrackedSmoothPass(EnableParallelSmooth, maxDegreeOfParallelism);
                 DoDebugChecks();
             }
             end_smooth();
@@ -421,10 +421,10 @@ namespace gs
                     {
                         if (Cancelled())
                             return false;
-                        TrackedFaceProjectionPass();
+                        TrackedFaceProjectionPass(maxDegreeOfParallelism);
                     }
                 } else {
-                    TrackedProjectionPass(EnableParallelProjection);
+                    TrackedProjectionPass(EnableParallelProjection, maxDegreeOfParallelism);
                 }
                 DoDebugChecks();
             }
@@ -435,7 +435,7 @@ namespace gs
         }
 
 
-        protected virtual void TrackedSmoothPass(bool bParallel)
+        protected virtual void TrackedSmoothPass(bool bParallel, int maxDegreeOfParallelism)
         {
             InitializeVertexBufferForPass();
 
@@ -473,13 +473,13 @@ namespace gs
 
 
             if (bParallel) {
-                gParallel.ForEach<int>(smooth_vertices(), smooth);
+                gParallel.ForEach<int>(smooth_vertices(), smooth, maxDegreeOfParallelism);
             } else {
                 foreach (int vID in smooth_vertices())
                     smooth(vID);
             }
 
-            ApplyVertexBuffer(bParallel);
+            ApplyVertexBuffer(bParallel, maxDegreeOfParallelism);
             //System.Console.WriteLine("Smooth Pass: queue: {0}", modified_edges.Count);
         }
 
@@ -490,7 +490,7 @@ namespace gs
         // [TODO] projection pass
         //   - only project vertices modified by smooth pass?
         //   - and/or verts in set of modified edges? 
-        protected virtual void TrackedProjectionPass(bool bParallel)
+        protected virtual void TrackedProjectionPass(bool bParallel, int maxDegreeOfParallelism)
         {
             InitializeVertexBufferForPass();
 
@@ -518,13 +518,13 @@ namespace gs
 
 
             if (bParallel) {
-                gParallel.ForEach<int>(smooth_vertices(), project);
+                gParallel.ForEach<int>(smooth_vertices(), project, maxDegreeOfParallelism);
             } else {
                 foreach (int vID in smooth_vertices())
                     project(vID);
             }
 
-            ApplyVertexBuffer(bParallel);
+            ApplyVertexBuffer(bParallel, maxDegreeOfParallelism);
             //System.Console.WriteLine("Projection Pass: queue: {0}", modified_edges.Count);
         }
 
@@ -583,7 +583,7 @@ namespace gs
         // [TODO] projection pass
         //   - only project vertices modified by smooth pass?
         //   - and/or verts in set of modified edges? 
-        protected virtual void TrackedFaceProjectionPass()
+        protected virtual void TrackedFaceProjectionPass(int maxDegreeOfParallelism)
         {
             IOrientedProjectionTarget normalTarget = ProjectionTarget as IOrientedProjectionTarget;
             if (normalTarget == null)
@@ -626,7 +626,7 @@ namespace gs
             };
             
             // compute face-aligned vertex positions
-            gParallel.ForEach(mesh.TriangleIndices(), process_triangle);
+            gParallel.ForEach(mesh.TriangleIndices(), process_triangle, maxDegreeOfParallelism);
 
 
             // ok now we filter out all the positions we can't change, as well as vertices that
@@ -659,11 +659,11 @@ namespace gs
                         queue_edge_safe(eid);
                 }
 
-            });
+            }, maxDegreeOfParallelism);
 
 
             // update vertices
-            ApplyVertexBuffer(true);
+            ApplyVertexBuffer(bParallel: true, maxDegreeOfParallelism);
         }
 
 

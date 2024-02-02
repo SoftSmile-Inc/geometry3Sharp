@@ -49,7 +49,7 @@ namespace gs
 
 
 
-        public bool Apply()
+        public bool Apply(int maxDegreeOfParallelism)
         {
             UseFillType type = classify_hole();
 
@@ -58,16 +58,16 @@ namespace gs
             bool DISABLE_PLANAR_FILL = false;
 
             if (type == UseFillType.PlanarFill && DISABLE_PLANAR_FILL == false)
-                bResult = fill_planar();
+                bResult = fill_planar(maxDegreeOfParallelism);
             else if (type == UseFillType.MinimalFill)
-                bResult = fill_minimal();
+                bResult = fill_minimal(maxDegreeOfParallelism);
             else if (type == UseFillType.PlanarSpansFill)
-                bResult = fill_planar_spans();
+                bResult = fill_planar_spans(maxDegreeOfParallelism);
             else
-                bResult = fill_smooth();
+                bResult = fill_smooth(maxDegreeOfParallelism);
 
             if (bResult == false && type != UseFillType.SmoothFill)
-                bResult = fill_smooth();
+                bResult = fill_smooth(maxDegreeOfParallelism);
 
             return bResult;
         }
@@ -112,19 +112,19 @@ namespace gs
 
 
 
-        bool fill_smooth()
+        bool fill_smooth(int maxDegreeOfParallelism)
         {
             SmoothedHoleFill fill = new SmoothedHoleFill(Mesh, FillLoop);
             fill.TargetEdgeLength = TargetEdgeLength;
             fill.SmoothAlpha = 1.0f;
             fill.ConstrainToHoleInterior = true;
             //fill.SmoothSolveIterations = 3;   // do this if we have a complicated hole - should be able to tell by normal histogram...
-            return fill.Apply();
+            return fill.Apply(maxDegreeOfParallelism);
         }
 
 
 
-        bool fill_planar()
+        bool fill_planar(int maxDegreeOfParallelism)
         {
             Vector3d n = Vector3d.Zero, c = Vector3d.Zero;
             int NE = FillLoop.EdgeCount;
@@ -140,16 +140,16 @@ namespace gs
             filler.AddFillLoop(FillLoop);
             filler.SetPlane(c, n);
 
-            bool bOK = filler.Fill();
+            bool bOK = filler.Fill(maxDegreeOfParallelism);
             return bOK;
         }
 
 
 
-        bool fill_minimal()
+        bool fill_minimal(int maxDegreeOfParallelism)
         {
             MinimalHoleFill minfill = new MinimalHoleFill(Mesh, FillLoop);
-            bool bOK = minfill.Apply();
+            bool bOK = minfill.Apply(maxDegreeOfParallelism);
             return bOK;
         }
 
@@ -163,7 +163,7 @@ namespace gs
         ///    2) 
         /// 
         /// </summary>
-        bool fill_planar_spans()
+        bool fill_planar_spans(int maxDegreeOfParallelism)
         {
             Dictionary<Vector3d, List<EdgeSpan>> span_sets = find_coplanar_span_sets(Mesh, FillLoop);
 
@@ -179,7 +179,7 @@ namespace gs
                             PlanarSpansFiller filler = new PlanarSpansFiller(Mesh, subset);
                             filler.FillTargetEdgeLen = TargetEdgeLength;
                             filler.SetPlane(pos, normal);
-                            filler.Fill();
+                            filler.Fill(maxDegreeOfParallelism);
                         }
                     }
 
@@ -187,7 +187,7 @@ namespace gs
                     PlanarSpansFiller filler = new PlanarSpansFiller(Mesh, spans);
                     filler.FillTargetEdgeLen = TargetEdgeLength;
                     filler.SetPlane(pos, normal);
-                    filler.Fill();
+                    filler.Fill(maxDegreeOfParallelism);
                 }
             }
 
