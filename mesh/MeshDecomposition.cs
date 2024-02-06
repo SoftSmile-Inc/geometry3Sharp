@@ -56,7 +56,7 @@ namespace g3
 
 
 
-        public void BuildLinear()
+        public void BuildLinear(int maxDegreeOfParallelism)
         {
             int NV = mesh.MaxVertexID;
 
@@ -107,7 +107,7 @@ namespace g3
 
 
 
-            int[] tri_order = get_tri_order_by_axis_sort();
+            int[] tri_order = get_tri_order_by_axis_sort(maxDegreeOfParallelism);
             int tri_count = tri_order.Length;
 
             for (int ii = 0; ii < tri_count; ++ii) {
@@ -131,7 +131,7 @@ namespace g3
 
 
 
-        int[] get_tri_order_by_axis_sort()
+        int[] get_tri_order_by_axis_sort(int maxDegreeOfParallelism)
         {
             int i = 0;
             int[] tri_order = new int[mesh.TriangleCount];
@@ -148,7 +148,7 @@ namespace g3
             gParallel.ForEach(mesh.TriangleIndices(), (ti) => {
                 if (mesh.IsTriangle(ti))
                     centroids[ti] = mesh.GetTriCentroid(ti);
-            });
+            }, maxDegreeOfParallelism);
 
 
             Array.Sort(tri_order, (t0, t1) => {

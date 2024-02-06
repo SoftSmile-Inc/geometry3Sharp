@@ -71,7 +71,7 @@ namespace gs
         }
 
 
-        public virtual bool Apply()
+        public virtual bool Apply(int maxDegreeOfParallelism)
         {
             DMesh3 testAgainstMesh = Mesh;
             if (InsideMode == CalculationMode.RayParity) {
@@ -92,7 +92,7 @@ namespace gs
             if (InsideMode == CalculationMode.AnalyticWindingNumber)
                 spatial.WindingNumber(Vector3d.Zero);
             else if (InsideMode == CalculationMode.FastWindingNumber )
-                spatial.FastWindingNumber(Vector3d.Zero);
+                spatial.FastWindingNumber(Vector3d.Zero, maxDegreeOfParallelism);
 
             if (Cancelled())
                 return false;
@@ -114,7 +114,7 @@ namespace gs
                 } else if (InsideMode == CalculationMode.AnalyticWindingNumber) {
                     return spatial.WindingNumber(pt) > WindingIsoValue;
                 } else if (InsideMode == CalculationMode.FastWindingNumber) {
-                    return spatial.FastWindingNumber(pt) > WindingIsoValue;
+                    return spatial.FastWindingNumber(pt, maxDegreeOfParallelism) > WindingIsoValue;
                 } else {
                     for (int k = 0; k < NR; ++k) {
                         int hit_tid = spatial.FindNearestHitTriangle(new Ray3d(pt, ray_dirs[k]));
@@ -134,7 +134,7 @@ namespace gs
                 MeshNormals normals = null;
                 if (Mesh.HasVertexNormals == false) {
                     normals = new MeshNormals(Mesh);
-                    normals.Compute();
+                    normals.Compute(maxDegreeOfParallelism);
                 }
 
                 gParallel.ForEach(Mesh.VertexIndices(), (vid) => {
@@ -145,7 +145,7 @@ namespace gs
                     Vector3d n = (normals == null) ? Mesh.GetVertexNormal(vid) : normals[vid];
                     c += n * NormalOffset;
                     vertices[vid] = isOccludedF(c);
-                });
+                }, maxDegreeOfParallelism);
             }
             if (Cancelled())
                 return false;
@@ -175,7 +175,7 @@ namespace gs
                     RemovedT.Add(tid);
                     removeLock.Exit();
                 }
-            });
+            }, maxDegreeOfParallelism);
 
             if (Cancelled())
                 return false;

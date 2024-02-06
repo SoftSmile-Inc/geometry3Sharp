@@ -33,7 +33,7 @@ namespace g3
         public List<int> CutVertices;
 
 
-        public void Compute()
+        public void Compute(int maxDegreeOfParallelism)
         {
             double cellSize = Target.CachedBounds.MaxDim / 64;
             PointHash = new PointHashGrid3d<int>(cellSize, -1);
@@ -51,7 +51,7 @@ namespace g3
             find_segments();
             insert_face_vertices();
             insert_edge_vertices();
-            connect_edges();
+            connect_edges(maxDegreeOfParallelism);
 
             // SegmentInsertVertices was constructed by planar polygon
             // insertions in MeshInsertUVPolyCurve calls, but we also
@@ -61,7 +61,7 @@ namespace g3
         }
 
 
-        public void RemoveContained()
+        public void RemoveContained(int maxDegreeOfParallelism)
         {
             DMeshAABBTree3 spatial = new DMeshAABBTree3(CutMesh, true);
             spatial.WindingNumber(Vector3d.Zero);
@@ -70,7 +70,7 @@ namespace g3
                 Vector3d v = Target.GetTriCentroid(tid);
                 if (spatial.WindingNumber(v) > 0.9)
                     removeT.SafeAdd(tid);
-            });
+            }, maxDegreeOfParallelism);
             MeshEditor.RemoveTriangles(Target, removeT.Result);
 
             // [RMS] construct set of on-cut vertices? This is not
@@ -82,12 +82,12 @@ namespace g3
             }
         }
 
-        public void AppendSegments(double r)
+        public void AppendSegments(double r, int maxDegreeOfParallelism)
         {
             foreach ( var seg in Segments ) {
                 Segment3d s = new Segment3d(seg.v0.v, seg.v1.v);
                 if ( Target.FindEdge(seg.v0.vtx_id, seg.v1.vtx_id) == DMesh3.InvalidID )
-                    MeshEditor.AppendLine(Target, s, (float)r);
+                    MeshEditor.AppendLine(Target, s, (float)r, maxDegreeOfParallelism);
             }
         }
 
@@ -408,7 +408,7 @@ namespace g3
         /// Make sure that all intersection segments are represented by
         /// a connected chain of edges.
         /// </summary>
-        void connect_edges()
+        void connect_edges(int maxDegreeOfParallelism)
         {
             int NS = Segments.Length;
             for ( int si = 0; si < NS; ++si ) {
@@ -435,7 +435,7 @@ namespace g3
                 // calls to insert_segment() !
 
                 try {
-                    insert_segment(seg);
+                    insert_segment(seg, maxDegreeOfParallelism);
                 } catch (Exception) {
                     // ignore?
                 }
@@ -443,7 +443,7 @@ namespace g3
         }
 
 
-        void insert_segment(IntersectSegment seg)
+        void insert_segment(IntersectSegment seg, int maxDegreeOfParallelism)
         {
             List<int> subfaces = get_all_baseface_tris(seg.base_tid);
 
@@ -468,7 +468,7 @@ namespace g3
             path.AppendVertex(p0); path.AppendVertex(p1);
 
             MeshInsertUVPolyCurve insert = new MeshInsertUVPolyCurve(mesh, path);
-            insert.Apply();
+            insert.Apply(maxDegreeOfParallelism);
 
             MeshVertexSelection cutVerts = new MeshVertexSelection(mesh);
             cutVerts.SelectEdgeVertices(insert.OnCutEdges);

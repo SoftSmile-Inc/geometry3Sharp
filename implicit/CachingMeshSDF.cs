@@ -109,7 +109,7 @@ namespace g3
         double MaxDistQueryDist;
 
 
-        public void Initialize()
+        public void Initialize(int maxDegreeOfParallelism)
         {
             // figure out origin & dimensions
             AxisAlignedBox3d bounds = Mesh.CachedBounds;
@@ -135,12 +135,12 @@ namespace g3
 
 
             if (ComputeSigns == true) {
-                compute_intersections(grid_origin, CellSize, ni, nj, nk, intersection_count);
+                compute_intersections(grid_origin, CellSize, ni, nj, nk, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
                 // then figure out signs (inside/outside) from intersection counts
-                compute_signs(ni, nj, nk, grid, intersection_count);
+                compute_signs(ni, nj, nk, grid, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -240,7 +240,7 @@ namespace g3
 
 
         // fill the intersection grid w/ number of intersections in each cell
-        void compute_intersections(Vector3f origin, float dx, int ni, int nj, int nk, DenseGrid3i intersection_count)
+        void compute_intersections(Vector3f origin, float dx, int ni, int nj, int nk, DenseGrid3i intersection_count, int maxDegreeOfParallelism)
         {
             double ox = (double)origin[0], oy = (double)origin[1], oz = (double)origin[2];
             double invdx = 1.0 / dx;
@@ -295,7 +295,7 @@ namespace g3
             };
 
             if (UseParallel) {
-                gParallel.ForEach(Mesh.TriangleIndices(), ProcessTriangleF);
+                gParallel.ForEach(Mesh.TriangleIndices(), ProcessTriangleF, maxDegreeOfParallelism);
             } else {
                 foreach (int tid in Mesh.TriangleIndices()) {
                     ProcessTriangleF(tid);
@@ -310,7 +310,7 @@ namespace g3
 
         // iterate through each x-row of grid and set unsigned distances to be negative
         // inside the mesh, based on the intersection_counts
-        void compute_signs(int ni, int nj, int nk, DenseGrid3f distances, DenseGrid3i intersection_counts)
+        void compute_signs(int ni, int nj, int nk, DenseGrid3f distances, DenseGrid3i intersection_counts, int maxDegreeOfParallelism)
         {
             Func<int, bool> isInsideF = (count) => { return count % 2 == 1; };
             if (InsideMode == InsideModes.ParityCount)
@@ -331,7 +331,7 @@ namespace g3
                             distances[i, j, k] = -distances[i, j, k]; // we are inside the mesh
                         }
                     }
-                });
+                }, maxDegreeOfParallelism);
 
             } else {
 

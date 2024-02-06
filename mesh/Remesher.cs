@@ -149,7 +149,7 @@ namespace g3 {
         /// - Projection pass if ProjectionMode == AfterRefinement
         /// - number of modified edges returned in ModifiedEdgesLastPass
         /// </summary>
-		public virtual void BasicRemeshPass() {
+		public virtual void BasicRemeshPass(int maxDegreeOfParallelism) {
             if (mesh.TriangleCount == 0)    // badness if we don't catch this...
                 return;
 
@@ -183,9 +183,9 @@ namespace g3 {
             begin_smooth();
             if (EnableSmoothing && SmoothSpeedT > 0) {
                 if (EnableSmoothInPlace)
-                    FullSmoothPass_InPlace(EnableParallelSmooth);
+                    FullSmoothPass_InPlace(EnableParallelSmooth, maxDegreeOfParallelism);
                 else
-                    FullSmoothPass_Buffer(EnableParallelSmooth);
+                    FullSmoothPass_Buffer(EnableParallelSmooth, maxDegreeOfParallelism);
                 DoDebugChecks();
             }
             end_smooth();
@@ -195,7 +195,7 @@ namespace g3 {
 
             begin_project();
             if (target != null && ProjectionMode == TargetProjectionMode.AfterRefinement) {
-                FullProjectionPass();
+                FullProjectionPass(maxDegreeOfParallelism);
                 DoDebugChecks();
             }
             end_project();
@@ -520,7 +520,7 @@ namespace g3 {
 
 
 
-		protected virtual void FullSmoothPass_InPlace(bool bParallel) {
+		protected virtual void FullSmoothPass_InPlace(bool bParallel, int maxDegreeOfParallelism) {
             Func<DMesh3, int, double, Vector3d> smoothFunc = MeshUtil.UniformSmooth;
             if (CustomSmoothF != null) {
                 smoothFunc = CustomSmoothF;
@@ -539,7 +539,7 @@ namespace g3 {
             };
 
             if (bParallel) {
-                gParallel.ForEach<int>(smooth_vertices(), smooth);
+                gParallel.ForEach<int>(smooth_vertices(), smooth, maxDegreeOfParallelism);
             } else {
                 foreach ( int vID in smooth_vertices() )
                     smooth(vID);
@@ -549,7 +549,7 @@ namespace g3 {
 
 
 
-        protected virtual void FullSmoothPass_Buffer(bool bParallel)
+        protected virtual void FullSmoothPass_Buffer(bool bParallel, int maxDegreeOfParallelism)
         {
             InitializeVertexBufferForPass();
 
@@ -573,13 +573,13 @@ namespace g3 {
             };
 
             if (bParallel) {
-                gParallel.ForEach<int>(smooth_vertices(), smooth);
+                gParallel.ForEach<int>(smooth_vertices(), smooth, maxDegreeOfParallelism);
             } else {
                 foreach (int vID in smooth_vertices())
                     smooth(vID);
             }
 
-            ApplyVertexBuffer(bParallel);
+            ApplyVertexBuffer(bParallel, maxDegreeOfParallelism);
         }
 
 
@@ -598,7 +598,7 @@ namespace g3 {
             }
         }
 
-        protected virtual void ApplyVertexBuffer(bool bParallel)
+        protected virtual void ApplyVertexBuffer(bool bParallel, int maxDegreeOfParallelism)
         {
             // [TODO] can probably use block-parallel here...
             if (bParallel) {
@@ -607,7 +607,7 @@ namespace g3 {
                         if (vModifiedV[vid])
                             Mesh.SetVertex(vid, vBufferV[vid]);
                     }
-                });
+                }, maxDegreeOfParallelism);
             } else {
                 foreach (int vid in mesh.VertexIndices()) {
                     if (vModifiedV[vid])
@@ -655,7 +655,7 @@ namespace g3 {
 
         // Project vertices onto projection target. 
         // We can do projection in parallel if we have .net 
-        protected virtual void FullProjectionPass()
+        protected virtual void FullProjectionPass(int maxDegreeOfParallelism)
         {
             Action<int> project = (vID) => {
                 if (vertex_is_constrained(vID))
@@ -668,7 +668,7 @@ namespace g3 {
             };
 
             if (EnableParallelProjection) {
-                gParallel.ForEach<int>(project_vertices(), project);
+                gParallel.ForEach<int>(project_vertices(), project, maxDegreeOfParallelism);
             } else {
                 foreach (int vid in project_vertices())
                     project(vid);

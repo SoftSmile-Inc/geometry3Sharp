@@ -168,6 +168,7 @@ namespace g3
             double minEdgeLen, double maxEdgeLen, double smoothSpeed, 
             int rounds, 
             IProjectionTarget target,
+            int maxDegreeOfParallelism,
             QuickRemeshFlags flags = QuickRemeshFlags.PreventNormalFlips )
         {
             RegionRemesher remesh = new RegionRemesher(mesh, tris);
@@ -179,7 +180,7 @@ namespace g3
             if ((flags & QuickRemeshFlags.PreventNormalFlips) != 0)
                 remesh.PreventNormalFlips = true;
             for (int k = 0; k < rounds; ++k) {
-                remesh.BasicRemeshPass();
+                remesh.BasicRemeshPass(maxDegreeOfParallelism);
             }
             remesh.BackPropropagate();
             return remesh;
@@ -188,6 +189,7 @@ namespace g3
             double targetEdgeLen, double smoothSpeed, 
             int rounds, 
             IProjectionTarget target,
+            int maxDegreeOfParallelism,
             QuickRemeshFlags flags = QuickRemeshFlags.PreventNormalFlips )
         {
             RegionRemesher remesh = new RegionRemesher(mesh, tris);
@@ -198,7 +200,7 @@ namespace g3
             if ( (flags & QuickRemeshFlags.PreventNormalFlips) != 0 )
                 remesh.PreventNormalFlips = true;
             for (int k = 0; k < rounds; ++k) {
-                remesh.BasicRemeshPass();
+                remesh.BasicRemeshPass(maxDegreeOfParallelism);
             }
             remesh.BackPropropagate();
             return remesh;

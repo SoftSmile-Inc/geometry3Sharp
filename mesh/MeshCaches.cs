@@ -15,7 +15,7 @@ namespace g3
         public DVector<Vector3d> Normals;
         public DVector<double> Areas;
 
-        public MeshTriInfoCache(DMesh3 mesh)
+        public MeshTriInfoCache(DMesh3 mesh, int maxDegreeOfParallelism)
         {
             int NT = mesh.TriangleCount;
             Centroids = new DVector<Vector3d>(); Centroids.resize(NT);
@@ -27,7 +27,7 @@ namespace g3
                 Centroids[tid] = c;
                 Normals[tid] = n;
                 Areas[tid] = a;
-            });
+            }, maxDegreeOfParallelism);
         }
 
         public void GetTriInfo(int tid, ref Vector3d n, ref double a, ref Vector3d c)

@@ -12,7 +12,7 @@ namespace g3
         public Box3d Box = Box3d.UnitZeroCentered;
         public bool NoSharedVertices = false;
 
-        public override MeshGenerator Generate()
+        public override MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             vertices = new VectorArray3d((NoSharedVertices) ? (4 * 6) : 8);
             uv = new VectorArray2f(vertices.Count);
@@ -74,7 +74,7 @@ namespace g3
         public int EdgeVertices = 8;
         public bool NoSharedVertices = false;
 
-        public override MeshGenerator Generate()
+        public override MeshGenerator Generate(int maxDegreeOfParallelism)
         {
             int N = (EdgeVertices > 1) ? EdgeVertices : 2;
             int Nm2 = N - 2;

@@ -81,7 +81,7 @@ namespace gs
         /// <summary>
         /// Run MC algorithm and generate Output mesh
         /// </summary>
-        public void Generate()
+        public void Generate(int maxDegreeOfParallelism)
         {
             Mesh = new DMesh3();
 
@@ -96,14 +96,14 @@ namespace gs
             corner_values = new Dictionary<long, double>();
 
             if (ParallelCompute) {
-                generate_parallel();
+                generate_parallel(maxDegreeOfParallelism);
             } else {
                 generate_basic();
             }
         }
 
 
-        public void GenerateContinuation(IEnumerable<Vector3d> seeds)
+        public void GenerateContinuation(IEnumerable<Vector3d> seeds, int maxDegreeOfParallelism)
         {
             Mesh = new DMesh3();
 
@@ -128,7 +128,7 @@ namespace gs
             }
 
             if (ParallelCompute) {
-                generate_continuation_parallel(seeds);
+                generate_continuation_parallel(seeds, maxDegreeOfParallelism);
             } else {
                 generate_continuation(seeds);
             }
@@ -408,7 +408,7 @@ namespace gs
         /// <summary>
         /// processing z-slabs of cells in parallel
         /// </summary>
-        void generate_parallel()
+        void generate_parallel(int maxDegreeOfParallelism)
         {
             mesh_lock = new SpinLock();
             parallel_mesh_access = true;
@@ -429,7 +429,7 @@ namespace gs
                         polygonize_cell(cell, vertlist);
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
 
             parallel_mesh_access = false;
@@ -511,7 +511,7 @@ namespace gs
         /// <summary>
         /// parallel seed evaluation
         /// </summary>
-        void generate_continuation_parallel(IEnumerable<Vector3d> seeds)
+        void generate_continuation_parallel(IEnumerable<Vector3d> seeds, int maxDegreeOfParallelism)
         {
             mesh_lock = new SpinLock();
             parallel_mesh_access = true;
@@ -545,7 +545,7 @@ namespace gs
                         }
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
             parallel_mesh_access = false;
         }

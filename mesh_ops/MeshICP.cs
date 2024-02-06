@@ -44,7 +44,7 @@ namespace g3
         /// Solve MaxIterations steps, or until convergence.
         /// If bUpdate = true, will improve on previous solution.
         /// </summary>
-        public void Solve(bool bUpdate = false)
+        public void Solve(int maxDegreeOfParallelism, bool bUpdate = false)
         {
             if (bUpdate == false)
                 is_initialized = false;
@@ -54,7 +54,7 @@ namespace g3
             }
 
             update_from();
-            update_to();
+            update_to(maxDegreeOfParallelism);
 
 
             LastError = measure_error();
@@ -70,7 +70,7 @@ namespace g3
 
                 update_transformation();
                 update_from();
-                update_to();
+                update_to(maxDegreeOfParallelism);
 
                 double err = measure_error();
                 if ( Math.Abs(LastError - err) < ConvergeTolerance ) {
@@ -148,7 +148,7 @@ namespace g3
         }
 
         // for each From[i], find closest point on TargetSurface
-        void update_to()
+        void update_to(int maxDegreeOfParallelism)
         {
             double max_dist = double.MaxValue;
 
@@ -182,7 +182,7 @@ namespace g3
                         Weights[vi] += Math.Sqrt(fDot);
                 }
 
-            });
+            }, maxDegreeOfParallelism);
         }
 
 

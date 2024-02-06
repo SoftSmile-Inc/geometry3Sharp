@@ -239,13 +239,13 @@ namespace g3
 
 
 
-        public DenseMatrix Multiply(DenseMatrix M2, bool bParallel = true)
+        public DenseMatrix Multiply(DenseMatrix M2, int maxDegreeOfParallelism, bool bParallel = true)
         {
             DenseMatrix R = new DenseMatrix(Rows, M2.Columns);
-            Multiply(M2, ref R, bParallel);
+            Multiply(M2, ref R, maxDegreeOfParallelism, bParallel);
             return R;
         }
-        public void Multiply(DenseMatrix M2, ref DenseMatrix R, bool bParallel = true)
+        public void Multiply(DenseMatrix M2, ref DenseMatrix R, int maxDegreeOfParallelism, bool bParallel = true)
         {
             int rows1 = N, cols1 = M;
             int rows2 = M2.N, cols2 = M2.M;
@@ -269,7 +269,7 @@ namespace g3
                             v += d[ii + k] * M2.d[k * M + c2i];
                         Rt[ii + c2i] = v;
                     }
-                });
+                }, maxDegreeOfParallelism);
             } else {
                 for (int r1i = 0; r1i < rows1; r1i++) {
                     int ii = r1i * M;

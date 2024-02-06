@@ -107,7 +107,7 @@ namespace g3
         /// This returns false if anything went wrong. 
         /// The Error Feedback properties (.OutputHasCracks, etc) will provide more info.
         /// </summary>
-        public bool Fill()
+        public bool Fill(int maxDegreeOfParallelism)
         {
             compute_polygons();
 
@@ -166,7 +166,7 @@ namespace g3
                         EdgeVertices = nDivisions
                     };
                 }
-                DMesh3 FillMesh = meshgen.Generate().MakeDMesh();
+                DMesh3 FillMesh = meshgen.Generate(maxDegreeOfParallelism).MakeDMesh();
                 FillMesh.ReverseOrientation();   // why?!?
 
                 // convenient list
@@ -182,7 +182,7 @@ namespace g3
                     ValidationStatus status = insert.Validate(MathUtil.ZeroTolerancef * scale);
                     bool failed = true;
                     if (status == ValidationStatus.Ok) {
-                        if (insert.Apply()) {
+                        if (insert.Apply(maxDegreeOfParallelism)) {
                             insert.Simplify();
                             polyVertices[pi] = insert.CurveVertices;
                             failed = (insert.Loops.Count != 1) ||

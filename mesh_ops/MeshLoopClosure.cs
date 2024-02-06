@@ -36,14 +36,14 @@ namespace g3
         }
 
 
-        public virtual bool Close()
+        public virtual bool Close(int maxDegreeOfParallelism)
         {
-            Close_Flat();
+            Close_Flat(maxDegreeOfParallelism);
             return true;
         }
 
 
-        public void Close_Flat()
+        public void Close_Flat(int maxDegreeOfParallelism)
         {
             double minlen, maxlen, avglen;
             MeshQueries.EdgeLengthStats(Mesh, out minlen, out maxlen, out avglen, 1000);
@@ -51,7 +51,7 @@ namespace g3
 
             // massage around boundary loop
             List<int> refinedBorderEdges;
-            cleanup_boundary(Mesh, InitialBorderLoop, avglen, out refinedBorderEdges, 3);
+            cleanup_boundary(Mesh, InitialBorderLoop, avglen, maxDegreeOfParallelism, out refinedBorderEdges, 3);
 
             // find new border loop. try to find new loop containing edges from loop we refined in cleanup_boundary,
             // if that fails just use largest loop.
@@ -91,7 +91,7 @@ namespace g3
             };
             loop_smooth.Alpha = 0.5f;
             loop_smooth.Rounds = 100;
-            loop_smooth.Smooth();
+            loop_smooth.Smooth(maxDegreeOfParallelism);
 
             Debug.Assert(Mesh.CheckValidity());
 
@@ -139,25 +139,25 @@ namespace g3
                 r.EnableSmoothing = true;
                 r.SmoothSpeedT = 1.0f;
                 for (int k = 0; k < 40; ++k)
-                    r.BasicRemeshPass();
+                    r.BasicRemeshPass(maxDegreeOfParallelism);
                 r.SetProjectionTarget(null);
                 r.SmoothSpeedT = 0.25f;
                 for (int k = 0; k < 10; ++k)
-                    r.BasicRemeshPass();
+                    r.BasicRemeshPass(maxDegreeOfParallelism);
                 Debug.Assert(Mesh.CheckValidity());
 
                 r.BackPropropagate();
             }
 
             // smooth around the join region to clean up ugliness
-            smooth_region(Mesh, r.Region.BaseBorderV, 3);
+            smooth_region(Mesh, r.Region.BaseBorderV, 3, maxDegreeOfParallelism);
         }
 
 
 
 
         // local mesh smooth applied to all vertices in N-rings around input list
-        public static void smooth_region(DMesh3 mesh, IEnumerable<int> vertices, int nRings)
+        public static void smooth_region(DMesh3 mesh, IEnumerable<int> vertices, int nRings, int maxDegreeOfParallelism)
         {
             MeshFaceSelection roi_t = new MeshFaceSelection(mesh);
             roi_t.SelectVertexOneRings(vertices);
@@ -171,7 +171,7 @@ namespace g3
             MeshIterativeSmooth mesh_smooth = new MeshIterativeSmooth(mesh, roi_v.ToArray(), true);
             mesh_smooth.Alpha = 0.2f;
             mesh_smooth.Rounds = 10;
-            mesh_smooth.Smooth();
+            mesh_smooth.Smooth(maxDegreeOfParallelism);
         }
 
 
@@ -179,7 +179,7 @@ namespace g3
         // smoothing vertex neighbourhood
         // [TODO] geodesic nbrhoold instead of # of rings
         // [TODO] reprojection?
-        public static void smooth_loop(DMesh3 mesh, EdgeLoop loop, int nRings, int rounds = 1, int repeats = 10)
+        public static void smooth_loop(DMesh3 mesh, EdgeLoop loop, int nRings, int maxDegreeOfParallelism, int rounds = 1, int repeats = 10)
         {
             MeshFaceSelection roi_t = new MeshFaceSelection(mesh);
             roi_t.SelectVertexOneRings(loop.Vertices);
@@ -198,8 +198,8 @@ namespace g3
             mesh_smooth.Rounds = rounds;
 
             for ( int i = 0; i < repeats; ++i ) {
-                loop_smooth.Smooth();
-                mesh_smooth.Smooth();
+                loop_smooth.Smooth(maxDegreeOfParallelism);
+                mesh_smooth.Smooth(maxDegreeOfParallelism);
             }
         }
 
@@ -208,7 +208,7 @@ namespace g3
         // rings, to try to 'massage' it into a cleaner shape/topology.
         // The result_edges list is the mapped edges of loop on the resulting mesh, but it is *not* in-order
         // [TODO] use geodesic distance instead of fixed # of rings?
-        public static void cleanup_boundary(DMesh3 mesh, EdgeLoop loop, double target_edge_len, out List<int> result_edges, int nRings = 3)
+        public static void cleanup_boundary(DMesh3 mesh, EdgeLoop loop, double target_edge_len, int maxDegreeOfParallelism, out List<int> result_edges, int nRings = 3)
         {
             Debug.Assert(loop.IsBoundaryLoop());
 
@@ -236,7 +236,7 @@ namespace g3
             r.EnableSmoothing = true;
             r.SmoothSpeedT = 0.1f;
             for (int k = 0; k < nRings*3; ++k)
-                r.BasicRemeshPass();
+                r.BasicRemeshPass(maxDegreeOfParallelism);
             Debug.Assert(mesh.CheckValidity());
 
             // extract the edges we tagged (they are unordered)

@@ -62,7 +62,7 @@ namespace gs
 		}
 
 
-		public bool Apply()
+		public bool Apply(int maxDegreeOfParallelism)
 		{
 			bool do_checks = false;
 
@@ -73,7 +73,7 @@ namespace gs
              * Remove parts of the mesh we don't want before we bother with anything else
              * TODO: maybe we need to repair orientation first? if we want to use MWN...
              */
-			do_remove_inside();
+			do_remove_inside(maxDegreeOfParallelism);
                 if (Cancelled()) return false;
 
             int repeat_count = 0;
@@ -83,7 +83,7 @@ namespace gs
              * make sure orientation of connected components is consistent
              * TODO: what about mobius strip problems?
              */
-            repair_orientation(false);
+            repair_orientation(false, maxDegreeOfParallelism);
                 if (Cancelled()) return false;
 
             /*
@@ -111,7 +111,7 @@ namespace gs
              * Possibly we have joined regions with different orientation (is it?), fix that
              * TODO: mobius strips again
              */
-            repair_orientation(false);
+            repair_orientation(false, maxDegreeOfParallelism);
                 if (Cancelled()) return false;
 
             if (do_checks) Mesh.CheckValidity();
@@ -124,7 +124,7 @@ namespace gs
              */
             int nRemainingBowties = 0;
 			int nHoles; bool bSawSpans;
-			fill_trivial_holes(out nHoles, out bSawSpans);
+			fill_trivial_holes(maxDegreeOfParallelism, out nHoles, out bSawSpans);
                 if (Cancelled()) return false;
                 if (Mesh.IsClosed()) goto all_done;
 
@@ -132,11 +132,11 @@ namespace gs
              * Now fill harder holes. If we saw spans, that means boundary loops could
              * not be resolved in some cases, do we disconnect bowties and try again.
              */
-            fill_any_holes(out nHoles, out bSawSpans);
+            fill_any_holes(maxDegreeOfParallelism, out nHoles, out bSawSpans);
                 if (Cancelled()) return false;
             if (bSawSpans) {
 				disconnect_bowties(out nRemainingBowties);
-				fill_any_holes(out nHoles, out bSawSpans);
+				fill_any_holes(maxDegreeOfParallelism, out nHoles, out bSawSpans);
 			}
                 if (Cancelled()) return false;
                 if (Mesh.IsClosed()) goto all_done;
@@ -183,7 +183,7 @@ namespace gs
             /*
              * finally do global orientation
              */
-            repair_orientation(true);
+            repair_orientation(true, maxDegreeOfParallelism);
                 if (Cancelled()) return false;
 
             if (do_checks) Mesh.CheckValidity();
@@ -192,7 +192,7 @@ namespace gs
              * Might as well compact output mesh...
              */
 			Mesh = new DMesh3(Mesh, true);
-            MeshNormals.QuickCompute(Mesh);
+            MeshNormals.QuickCompute(Mesh, maxDegreeOfParallelism);
 
 			return true;
 		}
@@ -200,7 +200,7 @@ namespace gs
 
 
 
-		void fill_trivial_holes(out int nRemaining, out bool saw_spans)
+		void fill_trivial_holes(int maxDegreeOfParallelism, out int nRemaining, out bool saw_spans)
 		{
 			MeshBoundaryLoops loops = new MeshBoundaryLoops(Mesh);
 			nRemaining = 0;
@@ -214,7 +214,7 @@ namespace gs
 					filled = filler.Fill();
 				} else if ( loop.VertexCount == 4 ) {
 					MinimalHoleFill filler = new MinimalHoleFill(Mesh, loop);
-					filled = filler.Apply();
+					filled = filler.Apply(maxDegreeOfParallelism);
 					if (filled == false) {
 						SimpleHoleFiller fallback = new SimpleHoleFiller(Mesh, loop);
 						filled = fallback.Fill();
@@ -228,7 +228,7 @@ namespace gs
 
 
 
-		void fill_any_holes(out int nRemaining, out bool saw_spans)
+		void fill_any_holes(int maxDegreeOfParallelism, out int nRemaining, out bool saw_spans)
 		{
 			MeshBoundaryLoops loops = new MeshBoundaryLoops(Mesh);
 			nRemaining = 0;
@@ -237,7 +237,7 @@ namespace gs
 			foreach (var loop in loops) {
                 if (Cancelled()) break;
                 MinimalHoleFill filler = new MinimalHoleFill(Mesh, loop);
-				bool filled = filler.Apply();
+				bool filled = filler.Apply(maxDegreeOfParallelism);
 				if (filled == false) {
                     if (Cancelled()) break;
                     SimpleHoleFiller fallback = new SimpleHoleFiller(Mesh, loop);
@@ -334,43 +334,43 @@ namespace gs
 		}
 
 
-        void repair_orientation(bool bGlobal)
+        void repair_orientation(bool bGlobal, int maxDegreeOfParallelism)
         {
             MeshRepairOrientation orient = new MeshRepairOrientation(Mesh);
             orient.OrientComponents();
             if (Cancelled()) return;
             if (bGlobal)
-                orient.SolveGlobalOrientation();
+                orient.SolveGlobalOrientation(maxDegreeOfParallelism);
         }
 
 
 
 
-		bool remove_interior(out int nRemoved)
+		bool remove_interior(int maxDegreeOfParallelism, out int nRemoved)
 		{
 			RemoveOccludedTriangles remove = new RemoveOccludedTriangles(Mesh);
 			remove.PerVertex = true;
 			remove.InsideMode = RemoveOccludedTriangles.CalculationMode.FastWindingNumber;
-			remove.Apply();
+			remove.Apply(maxDegreeOfParallelism);
 			nRemoved = remove.RemovedT.Count();
 			return true;
 		}
-		bool remove_occluded(out int nRemoved)
+		bool remove_occluded(int maxDegreeOfParallelism, out int nRemoved)
 		{
 			RemoveOccludedTriangles remove = new RemoveOccludedTriangles(Mesh);
 			remove.PerVertex = true;
 			remove.InsideMode = RemoveOccludedTriangles.CalculationMode.SimpleOcclusionTest;
-			remove.Apply();
+			remove.Apply(maxDegreeOfParallelism);
 			nRemoved = remove.RemovedT.Count();
 			return true;
 		}
-		bool do_remove_inside()
+		bool do_remove_inside(int maxDegreeOfParallelism)
 		{
 			int nRemoved = 0;
 			if (RemoveMode == RemoveModes.Interior) {
-				return remove_interior(out nRemoved);
+				return remove_interior(maxDegreeOfParallelism, out nRemoved);
 			} else if (RemoveMode == RemoveModes.Occluded) {
-				return remove_occluded(out nRemoved);
+				return remove_occluded(maxDegreeOfParallelism, out nRemoved);
 			}
 			return true;
 		}
