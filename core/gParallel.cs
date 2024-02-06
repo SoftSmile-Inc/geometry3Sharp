@@ -7,27 +7,33 @@ namespace g3
 {
     public class gParallel
     {
+        public static void ForEach<T>(IEnumerable<T> source, Action<T> body, int maxDegreeOfParallelism)
+        {
+            if (maxDegreeOfParallelism == 1)
+            {
+                ForEach_Sequential(source, body);
+            }
+            else
+            {
+                ParallelOptions parallelOptions = new ParallelOptions()
+                {
+                    MaxDegreeOfParallelism = maxDegreeOfParallelism
+                };
 
-        public static void ForEach_Sequential<T>(IEnumerable<T> source, Action<T> body)
-        {
-            foreach (T v in source)
-                body(v);
-        }
-        public static void ForEach<T>( IEnumerable<T> source, Action<T> body )
-        {
-            Parallel.ForEach<T>(source, body);
+                Parallel.ForEach<T>(source, parallelOptions, body);
+            }
         }
 
 
         /// <summary>
         /// Evaluate input actions in parallel
         /// </summary>
-        public static void Evaluate(params Action[] funcs)
+        public static void Evaluate(int maxDegreeOfParallelism, params Action[] funcs)
         {
             int N = funcs.Length;
             gParallel.ForEach(Interval1i.Range(N), (i) => {
                 funcs[i]();
-            });
+            }, maxDegreeOfParallelism);
         }
 
 
@@ -37,7 +43,7 @@ namespace g3
         /// Blocksize is automatically determind unless you specify one.
         /// Iterate over [start,end] *inclusive* in each block
         /// </summary>
-        public static void BlockStartEnd(int iStart, int iEnd, Action<int,int> blockF, int iBlockSize = -1, bool bDisableParallel = false )
+        public static void BlockStartEnd(int iStart, int iEnd, Action<int, int> blockF, int maxDegreeOfParallelism, int iBlockSize = -1, bool bDisableParallel = false )
         {
             if (iBlockSize == -1)
                 iBlockSize = 100;  // seems to work
@@ -53,7 +59,7 @@ namespace g3
                 ForEach(Interval1i.Range(num_blocks), (bi) => {
                     int k = iStart + iBlockSize * bi;
                     blockF(k, k + iBlockSize - 1);
-                });
+                }, maxDegreeOfParallelism);
             }
             // process leftover elements
             int remaining = N - (num_blocks * iBlockSize);
@@ -61,6 +67,12 @@ namespace g3
                 int k = iStart + num_blocks * iBlockSize;
                 blockF(k, k+remaining-1);
             }
+        }
+
+        private static void ForEach_Sequential<T>(IEnumerable<T> source, Action<T> body)
+        {
+            foreach (T v in source)
+                body(v);
         }
     }
 

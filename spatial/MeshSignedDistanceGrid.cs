@@ -118,7 +118,7 @@ namespace g3
             this.bounds = bounds ?? spatial?.Bounds ?? mesh.CachedBounds;
         }
 
-        public void Compute()
+        public void Compute(int maxDegreeOfParallelism)
         {
             if (Spatial == null)
             {
@@ -138,17 +138,17 @@ namespace g3
             if (ComputeMode == ComputeModes.NarrowBand_SpatialFloodFill) {
                 if (Spatial == null || NarrowBandMaxDistance == 0 || UseParallel == false)
                     throw new Exception("MeshSignedDistanceGrid.Compute: must set Spatial data structure and band max distance, and UseParallel=true");
-                make_level_set3_parallel_floodfill(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth);
+                make_level_set3_parallel_floodfill(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth, maxDegreeOfParallelism);
 
             } else {
                 if (UseParallel) {
                     if (Spatial != null) {
-                        make_level_set3_parallel_spatial(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth);
+                        make_level_set3_parallel_spatial(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth, maxDegreeOfParallelism);
                     } else {
-                        make_level_set3_parallel(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth);
+                        make_level_set3_parallel(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth, maxDegreeOfParallelism);
                     }
                 } else {
-                    make_level_set3(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth);
+                    make_level_set3(grid_origin, CellSize, ni, nj, nk, grid, ExactBandWidth, maxDegreeOfParallelism);
                 }
             }
         }
@@ -225,7 +225,8 @@ namespace g3
 
         void make_level_set3(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f distances, int exact_band)
+                             DenseGrid3f distances, int exact_band,
+                             int maxDegreeOfParallelism)
         {
             distances.resize(ni, nj, nk);
             distances.assign(upper_bound(distances)); // upper bound on distance
@@ -284,7 +285,7 @@ namespace g3
 
                 if (DebugPrint) System.Console.WriteLine("done narrow-band");
 
-                compute_intersections(origin, dx, ni, nj, nk, intersection_count);
+                compute_intersections(origin, dx, ni, nj, nk, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -305,7 +306,7 @@ namespace g3
 
 
                 // then figure out signs (inside/outside) from intersection counts
-                compute_signs(ni, nj, nk, distances, intersection_count);
+                compute_signs(ni, nj, nk, distances, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -327,7 +328,8 @@ namespace g3
 
         void make_level_set3_parallel(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f distances, int exact_band)
+                             DenseGrid3f distances, int exact_band,
+                             int maxDegreeOfParallelism)
         {
             distances.resize(ni, nj, nk);
             distances.assign(upper_bound(grid)); // upper bound on distance
@@ -401,7 +403,7 @@ namespace g3
 
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
             if (DebugPrint) System.Console.WriteLine("done narrow-band");
             if (CancelF())
                 return;
@@ -409,7 +411,7 @@ namespace g3
 
             if (ComputeSigns == true) {
 
-                compute_intersections(origin, dx, ni, nj, nk, intersection_count);
+                compute_intersections(origin, dx, ni, nj, nk, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -431,7 +433,7 @@ namespace g3
                 if (DebugPrint) System.Console.WriteLine("done sweeping");
 
                 // then figure out signs (inside/outside) from intersection counts
-                compute_signs(ni, nj, nk, distances, intersection_count);
+                compute_signs(ni, nj, nk, distances, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -452,7 +454,8 @@ namespace g3
 
         void make_level_set3_parallel_spatial(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f distances, int exact_band)
+                             DenseGrid3f distances, int exact_band,
+                             int maxDegreeOfParallelism)
         {
             distances.resize(ni, nj, nk);
             float upper_bound = this.upper_bound(distances);
@@ -510,7 +513,7 @@ namespace g3
                         }
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
 
             if (DebugPrint) System.Console.WriteLine("done narrow-band tagging");
@@ -532,7 +535,7 @@ namespace g3
                     distances[idx] = (float)Math.Sqrt(dsqr);
                     closest_tri[idx] = near_tid;
                 }
-            });
+            }, maxDegreeOfParallelism);
 
 
             if (DebugPrint) System.Console.WriteLine("done distances");
@@ -545,7 +548,7 @@ namespace g3
 
                 if (DebugPrint) System.Console.WriteLine("done narrow-band");
 
-                compute_intersections(origin, dx, ni, nj, nk, intersection_count);
+                compute_intersections(origin, dx, ni, nj, nk, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -567,7 +570,7 @@ namespace g3
                 if (DebugPrint) System.Console.WriteLine("done sweeping");
 
                 // then figure out signs (inside/outside) from intersection counts
-                compute_signs(ni, nj, nk, distances, intersection_count);
+                compute_signs(ni, nj, nk, distances, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -597,7 +600,8 @@ namespace g3
 
         void make_level_set3_parallel_floodfill(Vector3f origin, float dx,
                              int ni, int nj, int nk,
-                             DenseGrid3f distances, int exact_band)
+                             DenseGrid3f distances, int exact_band,
+                             int maxDegreeOfParallelism)
         {
             distances.resize(ni, nj, nk);
             float upper_bound = this.upper_bound(distances);
@@ -651,7 +655,7 @@ namespace g3
                 Q.Add(idx_linear);
                 done[idx_linear] = true;
                 grid_lock.Exit();
-            });
+            }, maxDegreeOfParallelism);
             if (DebugPrint) System.Console.WriteLine("done vertices");
             if (CancelF())
                 return;
@@ -699,7 +703,7 @@ namespace g3
                         }
                         grid_lock.Exit();
                     }
-                });
+                }, maxDegreeOfParallelism);
                 // swap lists
                 var tmp = Q; Q = next_Q; next_Q = tmp;
                 next_pass_count = Q.Count;
@@ -713,7 +717,7 @@ namespace g3
 
                 if (DebugPrint) System.Console.WriteLine("done narrow-band");
 
-                compute_intersections(origin, dx, ni, nj, nk, intersection_count);
+                compute_intersections(origin, dx, ni, nj, nk, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -735,7 +739,7 @@ namespace g3
                 if (DebugPrint) System.Console.WriteLine("done sweeping");
 
                 // then figure out signs (inside/outside) from intersection counts
-                compute_signs(ni, nj, nk, distances, intersection_count);
+                compute_signs(ni, nj, nk, distances, intersection_count, maxDegreeOfParallelism);
                 if (CancelF())
                     return;
 
@@ -832,7 +836,7 @@ namespace g3
 
 
         // fill the intersection grid w/ number of intersections in each cell
-        void compute_intersections(Vector3f origin, float dx, int ni, int nj, int nk, DenseGrid3i intersection_count)
+        void compute_intersections(Vector3f origin, float dx, int ni, int nj, int nk, DenseGrid3i intersection_count, int maxDegreeOfParallelism)
         {
             double ox = (double)origin[0], oy = (double)origin[1], oz = (double)origin[2];
             double invdx = 1.0 / dx;
@@ -887,7 +891,7 @@ namespace g3
             };
 
             if (UseParallel) {
-                gParallel.ForEach(Mesh.TriangleIndices(), ProcessTriangleF);
+                gParallel.ForEach(Mesh.TriangleIndices(), ProcessTriangleF, maxDegreeOfParallelism);
             } else {
                 foreach (int tid in Mesh.TriangleIndices()) {
                     ProcessTriangleF(tid);
@@ -902,7 +906,7 @@ namespace g3
 
         // iterate through each x-row of grid and set unsigned distances to be negative
         // inside the mesh, based on the intersection_counts
-        void compute_signs(int ni, int nj, int nk, DenseGrid3f distances, DenseGrid3i intersection_counts)
+        void compute_signs(int ni, int nj, int nk, DenseGrid3f distances, DenseGrid3i intersection_counts, int maxDegreeOfParallelism)
         {
             Func<int, bool> isInsideF = (count) => { return count % 2 == 1; };
             if (InsideMode == InsideModes.ParityCount)
@@ -923,7 +927,7 @@ namespace g3
                             distances[i, j, k] = -distances[i, j, k]; // we are inside the mesh
                         }
                     }
-                });
+                }, maxDegreeOfParallelism);
 
             } else {
 

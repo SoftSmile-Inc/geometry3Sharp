@@ -27,7 +27,7 @@ namespace g3
         private static readonly double ZeroTolerance = MathUtil.ZeroTolerance * 1000.0f;
 
 
-        public bool Solve()
+        public bool Solve(int maxDegreeOfParallelism)
         {
             Iterations = 0;
             int size = B.Length;
@@ -85,7 +85,7 @@ namespace g3
 
                 // can compute these two steps simultaneously
                 double RdotR = 0;
-                gParallel.Evaluate(
+                gParallel.Evaluate(maxDegreeOfParallelism,
                     () => { BufferUtil.MultiplyAdd(X, alpha, P); },
                     () => { RdotR = BufferUtil.MultiplyAdd_GetSqrSum(R, -alpha, AP); } 
                 );
@@ -121,7 +121,7 @@ namespace g3
 
 
 
-        public bool SolvePreconditioned()
+        public bool SolvePreconditioned(int maxDegreeOfParallelism)
         {
             Iterations = 0;
             int n = B.Length;
@@ -170,7 +170,7 @@ namespace g3
                 MultiplyF(P, AP);
                 double alpha_k = RdotZ_k / BufferUtil.Dot(P, AP);
 
-                gParallel.Evaluate(
+                gParallel.Evaluate(maxDegreeOfParallelism,
                     // x_k+1 = x_k + alpha_k * p_k
                     () => { BufferUtil.MultiplyAdd(X, alpha_k, P); },
                     // r_k+1 = r_k - alpha_k * A * p_k
@@ -183,7 +183,7 @@ namespace g3
                 // beta_k = (z_k+1 * r_k+1) / (z_k * r_k)
                 double beta_k = BufferUtil.Dot(Z, R) / RdotZ_k;
 
-                gParallel.Evaluate(
+                gParallel.Evaluate(maxDegreeOfParallelism,
                     // p_k+1 = z_k+1 + beta_k * p_k
                     () => {
                         for (int i = 0; i < n; ++i)
@@ -249,7 +249,7 @@ namespace g3
         /// <summary>
         /// standard CG solve
         /// </summary>
-        public bool Solve()
+        public bool Solve(int maxDegreeOfParallelism)
         {
             Iterations = 0;
             if (B == null || MultiplyF == null)
@@ -342,26 +342,26 @@ namespace g3
 
                 for (int j = 0; j < NRHS; ++j) 
                     beta[j] = rho1[j] / rho0[j];
-                UpdateP(P, beta, R, converged);
+                UpdateP(P, beta, R, converged, maxDegreeOfParallelism);
 
                 MultiplyF(P, W);
 
                 gParallel.ForEach(rhs, (j) => {
                     if ( converged[j] == false )
                         alpha[j] = rho1[j] / BufferUtil.Dot(P[j], W[j]);
-                });
+                }, maxDegreeOfParallelism);
 
                 // can do all these in parallel, but improvement is minimal
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false)
                         BufferUtil.MultiplyAdd(X[j], alpha[j], P[j]);
-                });
+                }, maxDegreeOfParallelism);
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false) {
                         rho0[j] = rho1[j];
                         rho1[j] = BufferUtil.MultiplyAdd_GetSqrSum(R[j], -alpha[j], W[j]);
                     }
-                });
+                }, maxDegreeOfParallelism);
             }
 
             //System.Console.WriteLine("{0} iterations", iter);
@@ -378,7 +378,7 @@ namespace g3
         /// Similar to non-preconditioned version, this can suffer if one solution converges
         /// much slower than others, as we can't skip matrix multiplies in that case.
         /// </summary>
-        public bool SolvePreconditioned()
+        public bool SolvePreconditioned(int maxDegreeOfParallelism)
         {
             Iterations = 0;
             if (B == null || MultiplyF == null || PreconditionMultiplyF == null)
@@ -460,21 +460,21 @@ namespace g3
                 gParallel.ForEach(rhs, (j) => {
                     if ( converged[j] == false )
                         alpha_k[j] = RdotZ_k[j] / BufferUtil.Dot(P[j], AP[j]);
-                });
+                }, maxDegreeOfParallelism);
 
                 // x_k+1 = x_k + alpha_k * p_k
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false) {
                         BufferUtil.MultiplyAdd(X[j], alpha_k[j], P[j]);
                     }
-                });
+                }, maxDegreeOfParallelism);
 
                 // r_k+1 = r_k - alpha_k * A * p_k
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false) {
                         BufferUtil.MultiplyAdd(R[j], -alpha_k[j], AP[j]);
                     }
-                });
+                }, maxDegreeOfParallelism);
 
                 // z_k+1 = M_inverse * r_k+1
                 PreconditionMultiplyF(R, Z);
@@ -483,7 +483,7 @@ namespace g3
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false)
                         beta_k[j] = BufferUtil.Dot(Z[j], R[j]) / RdotZ_k[j];
-                });
+                }, maxDegreeOfParallelism);
 
                 // can do these in parallel but improvement is minimal
 
@@ -493,13 +493,13 @@ namespace g3
                         for (int i = 0; i < n; ++i)
                             P[j][i] = Z[j][i] + beta_k[j] * P[j][i];
                     }
-                });
+                }, maxDegreeOfParallelism);
 
                 gParallel.ForEach(rhs, (j) => {
                     if (converged[j] == false) {
                         RdotZ_k[j] = BufferUtil.Dot(R[j], Z[j]);
                     }
-                });
+                }, maxDegreeOfParallelism);
             }
 
 
@@ -518,7 +518,7 @@ namespace g3
 
 
 
-        void UpdateP(double[][] P, double[] beta, double[][] R, bool[] converged)
+        void UpdateP(double[][] P, double[] beta, double[][] R, bool[] converged, int maxDegreeOfParallelism)
         {
             Interval1i rhs = Interval1i.Range(P.Length);
             gParallel.ForEach(rhs, (j) => {
@@ -527,7 +527,7 @@ namespace g3
                     for (int i = 0; i < n; ++i)
                         P[j][i] = R[j][i] + beta[j] * P[j][i];
                 }
-            });
+            }, maxDegreeOfParallelism);
         }
 
 

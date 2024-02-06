@@ -35,7 +35,7 @@ namespace g3
         }
 
 
-        public virtual bool Smooth()
+        public virtual bool Smooth(int maxDegreeOfParallelism)
         {
             int NV = Loop.Vertices.Length;
 
@@ -53,7 +53,7 @@ namespace g3
 
                     Vector3d centroid = (prev + next) * 0.5;
                     SmoothedPostions[i] = (1 - a) * cur + (a) * centroid;
-                });
+                }, maxDegreeOfParallelism);
 
                 // bake
                 gParallel.ForEach(Interval1i.Range(NV), (i) => {
@@ -64,7 +64,7 @@ namespace g3
                         pos = ProjectF(pos, vid);
 
                     Mesh.SetVertex(vid, pos);
-                });
+                }, maxDegreeOfParallelism);
             }
 
             return true;

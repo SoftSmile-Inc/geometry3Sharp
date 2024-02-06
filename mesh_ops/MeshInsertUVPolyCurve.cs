@@ -308,7 +308,7 @@ spatial_add_triangles(et.a, et.b);
             return pokeinfo.new_vid;
         }
 
-        public virtual bool Apply()
+        public virtual bool Apply(int maxDegreeOfParallelism)
 		{
             HashSet<int> OnCurveVerts = new HashSet<int>();     // original vertices that were epsilon-coincident w/ curve vertices
             insert_corners(OnCurveVerts);
@@ -375,7 +375,7 @@ spatial_add_triangles(et.a, et.b);
                         }
                     } else
                         signs[vid] = sbyte.MaxValue;
-                });
+                }, maxDegreeOfParallelism);
 
                 // have to skip processing of new edges. If edge id
                 // is > max at start, is new. Otherwise if in NewEdges list, also new.

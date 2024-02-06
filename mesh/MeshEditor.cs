@@ -866,84 +866,84 @@ namespace g3
 
 
 
-        public void AppendBox(Frame3f frame, float size)
+        public void AppendBox(Frame3f frame, float size, int maxDegreeOfParallelism)
         {
-            AppendBox(frame, size * Vector3f.One);
+            AppendBox(frame, size * Vector3f.One, maxDegreeOfParallelism);
         }
-        public void AppendBox(Frame3f frame, Vector3f size)
+        public void AppendBox(Frame3f frame, Vector3f size, int maxDegreeOfParallelism)
         {
-            AppendBox(frame, size, Colorf.White);
+            AppendBox(frame, size, Colorf.White, maxDegreeOfParallelism);
         }
-        public void AppendBox(Frame3f frame, Vector3f size, Colorf color)
+        public void AppendBox(Frame3f frame, Vector3f size, Colorf color, int maxDegreeOfParallelism)
         {
             TrivialBox3Generator boxgen = new TrivialBox3Generator() {
                 Box = new Box3d(frame, size),
                 NoSharedVertices = false
             };
-            boxgen.Generate();
+            boxgen.Generate(maxDegreeOfParallelism);
             DMesh3 mesh = new DMesh3();
             boxgen.MakeMesh(mesh);
             if (Mesh.HasVertexColors)
                 mesh.EnableVertexColors(color);
             AppendMesh(mesh, Mesh.AllocateTriangleGroup());
         }
-        public void AppendLine(Segment3d seg, float size)
+        public void AppendLine(Segment3d seg, float size, int maxDegreeOfParallelism)
         {
             Frame3f f = new Frame3f(seg.Center);
             f.AlignAxis(2, (Vector3f)seg.Direction);
-            AppendBox(f, new Vector3f(size, size, seg.Extent));
+            AppendBox(f, new Vector3f(size, size, seg.Extent), maxDegreeOfParallelism);
         }
-        public void AppendLine(Segment3d seg, float size, Colorf color)
+        public void AppendLine(Segment3d seg, float size, Colorf color, int maxDegreeOfParallelism)
         {
             Frame3f f = new Frame3f(seg.Center);
             f.AlignAxis(2, (Vector3f)seg.Direction);
-            AppendBox(f, new Vector3f(size, size, seg.Extent), color);
+            AppendBox(f, new Vector3f(size, size, seg.Extent), color, maxDegreeOfParallelism);
         }
-        public static void AppendBox(DMesh3 mesh, Vector3d pos, float size)
+        public static void AppendBox(DMesh3 mesh, Vector3d pos, float size, int maxDegreeOfParallelism)
         {
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(new Frame3f(pos), size);
+            editor.AppendBox(new Frame3f(pos), size, maxDegreeOfParallelism);
         }
-        public static void AppendBox(DMesh3 mesh, Vector3d pos, float size, Colorf color)
+        public static void AppendBox(DMesh3 mesh, Vector3d pos, float size, Colorf color, int maxDegreeOfParallelism)
         {
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(new Frame3f(pos), size*Vector3f.One, color);
+            editor.AppendBox(new Frame3f(pos), size*Vector3f.One, color, maxDegreeOfParallelism);
         }
-        public static void AppendBox(DMesh3 mesh, Vector3d pos, Vector3d normal, float size)
+        public static void AppendBox(DMesh3 mesh, Vector3d pos, Vector3d normal, float size, int maxDegreeOfParallelism)
         {
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(new Frame3f(pos, normal), size);
+            editor.AppendBox(new Frame3f(pos, normal), size, maxDegreeOfParallelism);
         }
-        public static void AppendBox(DMesh3 mesh, Vector3d pos, Vector3d normal, float size, Colorf color)
+        public static void AppendBox(DMesh3 mesh, Vector3d pos, Vector3d normal, float size, Colorf color, int maxDegreeOfParallelism)
         {
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(new Frame3f(pos, normal), size*Vector3f.One, color);
+            editor.AppendBox(new Frame3f(pos, normal), size*Vector3f.One, color, maxDegreeOfParallelism);
         }
-        public static void AppendBox(DMesh3 mesh, Frame3f frame, Vector3f size, Colorf color)
+        public static void AppendBox(DMesh3 mesh, Frame3f frame, Vector3f size, Colorf color, int maxDegreeOfParallelism)
         {
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(frame, size, color);
+            editor.AppendBox(frame, size, color, maxDegreeOfParallelism);
         }
 
-        public static void AppendLine(DMesh3 mesh, Segment3d seg, float size)
+        public static void AppendLine(DMesh3 mesh, Segment3d seg, float size, int maxDegreeOfParallelism)
         {
             Frame3f f = new Frame3f(seg.Center);
             f.AlignAxis(2, (Vector3f)seg.Direction);
             MeshEditor editor = new MeshEditor(mesh);
-            editor.AppendBox(f, new Vector3f(size, size, seg.Extent));
+            editor.AppendBox(f, new Vector3f(size, size, seg.Extent), maxDegreeOfParallelism);
         }
 
 
 
 
-        public void AppendPathSolid(IEnumerable<Vector3d> vertices, double radius, Colorf color)
+        public void AppendPathSolid(IEnumerable<Vector3d> vertices, double radius, Colorf color, int maxDegreeOfParallelism)
         {
             TubeGenerator tubegen = new TubeGenerator() {
                 Vertices = new List<Vector3d>(vertices),
                 Polygon = Polygon2d.MakeCircle(radius, 6),
                 NoSharedVertices = false
             };
-            DMesh3 mesh = tubegen.Generate().MakeDMesh();
+            DMesh3 mesh = tubegen.Generate(maxDegreeOfParallelism).MakeDMesh();
             if (Mesh.HasVertexColors)
                 mesh.EnableVertexColors(color);
             AppendMesh(mesh, Mesh.AllocateTriangleGroup());

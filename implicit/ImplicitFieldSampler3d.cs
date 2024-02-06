@@ -59,7 +59,7 @@ namespace g3
 
 
 
-        public void Sample(BoundedImplicitFunction3d f, double expandRadius = 0)
+        public void Sample(BoundedImplicitFunction3d f, int maxDegreeOfParallelism, double expandRadius = 0)
         {
             AxisAlignedBox3d bounds = f.Bounds();
 
@@ -72,19 +72,19 @@ namespace g3
             AxisAlignedBox3i gridbox = new AxisAlignedBox3i(gridMin, gridMax);
             switch (CombineMode) {
                 case CombineModes.DistanceMinUnion:
-                    sample_min(f, gridbox.IndicesInclusive());
+                    sample_min(f, gridbox.IndicesInclusive(), maxDegreeOfParallelism);
                     break;
             }
         }
 
 
-        void sample_min(BoundedImplicitFunction3d f, IEnumerable<Vector3i> indices)
+        void sample_min(BoundedImplicitFunction3d f, IEnumerable<Vector3i> indices, int maxDegreeOfParallelism)
         {
             gParallel.ForEach(indices, (idx) => {
                 Vector3d v = Indexer.FromGrid(idx);
                 double d = f.Value(ref v);
                 Grid.set_min(ref idx, (float)d);
-            });
+            }, maxDegreeOfParallelism);
         }
 
     }

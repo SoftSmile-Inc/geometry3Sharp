@@ -66,12 +66,12 @@ namespace gs
                 Bounds = mesh.CachedBounds;
             }
 
-            public bool Contains(ComponentMesh mesh2, double fIso = 0.5f)
+            public bool Contains(ComponentMesh mesh2, int maxDegreeOfParallelism, double fIso = 0.5f)
             {
                 if (this.Spatial == null)
                     return false;
                 // make sure FWN is available
-                this.Spatial.FastWindingNumber(Vector3d.Zero);
+                this.Spatial.FastWindingNumber(Vector3d.Zero, maxDegreeOfParallelism);
 
                 // block-parallel iteration provides a reasonable speedup
                 int NV = mesh2.Mesh.VertexCount;
@@ -81,7 +81,7 @@ namespace gs
                         return;
                     for (int vi = a; vi <= b && contained; vi++) {
                         Vector3d v = mesh2.Mesh.GetVertex(vi);
-                        if ( Math.Abs(Spatial.FastWindingNumber(v)) < fIso) { 
+                        if ( Math.Abs(Spatial.FastWindingNumber(v, maxDegreeOfParallelism)) < fIso) { 
                             contained = false;
                             break;
                         }
@@ -106,7 +106,7 @@ namespace gs
 
 
 
-        public void Sort()
+        public void Sort(int maxDegreeOfParallelism)
         {
             int N = Components.Count;
 
@@ -146,7 +146,7 @@ namespace gs
                         continue;
 
                     // any other early-outs??
-                    if (compi.Contains(compj)) {
+                    if (compi.Contains(compj, maxDegreeOfParallelism)) {
 
                         bool entered = false;
                         dataLock.Enter(ref entered);
@@ -166,7 +166,7 @@ namespace gs
                     }
 
                 }
-            });
+            }, maxDegreeOfParallelism);
 
 
             List<MeshSolid> solids = new List<MeshSolid>();

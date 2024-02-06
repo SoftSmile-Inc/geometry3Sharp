@@ -70,13 +70,13 @@ namespace g3
             ValueF = valueF;
         }
 
-        public void Compute()
+        public void Compute(int maxDegreeOfParallelism)
         {
-            compute_full(Mesh.TriangleIndices(), true);
+            compute_full(Mesh.TriangleIndices(), maxDegreeOfParallelism, bIsFullMeshHint: true);
         }
-        public void Compute(IEnumerable<int> Triangles)
+        public void Compute(IEnumerable<int> Triangles, int maxDegreeOfParallelism)
         {
-            compute_full(Triangles);
+            compute_full(Triangles, maxDegreeOfParallelism);
         }
 
 
@@ -86,7 +86,7 @@ namespace g3
 
         Dictionary<Vector3d, int> Vertices;
 
-        protected void compute_full(IEnumerable<int> Triangles, bool bIsFullMeshHint = false)
+        protected void compute_full(IEnumerable<int> Triangles, int maxDegreeOfParallelism, bool bIsFullMeshHint = false)
         {
             Graph = new DGraph3();
             if (WantGraphEdgeInfo)
@@ -107,7 +107,7 @@ namespace g3
                 }
                 gParallel.ForEach(verts, (vid) => {
                     vertex_values[vid] = ValueF(Mesh.GetVertex(vid));
-                });
+                }, maxDegreeOfParallelism);
                 VertexValueF = (vid) => { return vertex_values[vid]; };
             }
 

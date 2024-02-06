@@ -94,7 +94,7 @@ namespace g3
         /// <summary>
         /// Run MC algorithm and generate Output mesh
         /// </summary>
-        public void Generate()
+        public void Generate(int maxDegreeOfParallelism)
         {
             Mesh = new DMesh3();
 
@@ -106,7 +106,7 @@ namespace g3
             CellDimensions = new Vector3i(nx, ny, nz);
 
             if (ParallelCompute) {
-                generate_parallel();
+                generate_parallel(maxDegreeOfParallelism);
             } else {
                 generate_basic();
             }
@@ -200,7 +200,7 @@ namespace g3
         /// <summary>
         /// processing z-slabs of cells in parallel
         /// </summary>
-        void generate_parallel()
+        void generate_parallel(int maxDegreeOfParallelism)
         {
             hash_lock = new SpinLock();
             mesh_lock = new SpinLock();
@@ -222,7 +222,7 @@ namespace g3
                         polygonize_cell(cell, vertlist);
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
 
             bParallel = false;

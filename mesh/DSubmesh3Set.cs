@@ -33,20 +33,20 @@ namespace g3
         /// <summary>
         /// Construct submesh set from given keys and key-to-indices Func
         /// </summary>
-        public DSubmesh3Set(DMesh3 mesh, IEnumerable<object> keys, Func<object,IEnumerable<int>> indexSetsF)
+        public DSubmesh3Set(DMesh3 mesh, IEnumerable<object> keys, Func<object,IEnumerable<int>> indexSetsF, int maxDegreeOfParallelism)
         {
             Mesh = mesh;
             TriangleSetKeys = keys;
             TriangleSetF = indexSetsF;
 
-            ComputeSubMeshes();
+            ComputeSubMeshes(maxDegreeOfParallelism);
         }
 
 
         /// <summary>
         /// Construct submesh set for an already-computed MeshConnectedComponents instance
         /// </summary>
-        public DSubmesh3Set(DMesh3 mesh, MeshConnectedComponents components)
+        public DSubmesh3Set(DMesh3 mesh, MeshConnectedComponents components, int maxDegreeOfParallelism)
         {
             Mesh = mesh;
 
@@ -58,7 +58,7 @@ namespace g3
                 keys.Add(k);
             TriangleSetKeys = keys;
 
-            ComputeSubMeshes();
+            ComputeSubMeshes(maxDegreeOfParallelism);
         }
 
 
@@ -71,7 +71,7 @@ namespace g3
 
 
 
-        virtual protected void ComputeSubMeshes()
+        virtual protected void ComputeSubMeshes(int maxDegreeOfParallelism)
         {
             Submeshes = new List<DSubmesh3>();
             KeyToMesh = new Dictionary<object, DSubmesh3>();
@@ -86,7 +86,7 @@ namespace g3
                 Submeshes.Add(submesh);
                 KeyToMesh[obj] = submesh;
                 data_lock.Exit();
-            });
+            }, maxDegreeOfParallelism);
         }
 
     }

@@ -192,13 +192,13 @@ namespace g3
         /// <summary>
         /// sort each row
         /// </summary>
-        public void Sort(bool bParallel = true) {
+        public void Sort(int maxDegreeOfParallelism, bool bParallel = true) {
             if (bParallel) {
                 gParallel.BlockStartEnd(0, Rows.Length - 1, (a, b) => {
                     for (int i = a; i <= b; i++) {
                         Array.Sort(Rows[i], (x, y) => { return x.j.CompareTo(y.j); });
                     }
-                });
+                }, maxDegreeOfParallelism);
             } else {
                 for (int i = 0; i < Rows.Length; ++i)
                     Array.Sort(Rows[i], (x, y) => { return x.j.CompareTo(y.j); });
@@ -266,7 +266,7 @@ namespace g3
         }
 
 
-        public void Multiply_Parallel(double[] X, double[] Result)
+        public void Multiply_Parallel(double[] X, double[] Result, int maxDegreeOfParallelism)
         {
             gParallel.BlockStartEnd(0, Rows.Length - 1, (i_start, i_end) => {
                 for (int i = i_start; i <= i_end; ++i) {
@@ -277,14 +277,14 @@ namespace g3
                         Result[i] += row[k].d * X[row[k].j];
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
         }
 
 
         /// <summary>
         /// Hardcoded variant for 3 RHS vectors, much faster
         /// </summary>
-        public void Multiply_Parallel_3(double[][] X, double[][] Result)
+        public void Multiply_Parallel_3(double[][] X, double[][] Result, int maxDegreeOfParallelism)
         {
             int j = X.Length;
             gParallel.BlockStartEnd(0, Rows.Length - 1, (i_start, i_end) => {
@@ -300,7 +300,7 @@ namespace g3
                         Result[2][i] += d * X[2][rowkj];
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
         }
 
 
@@ -518,7 +518,7 @@ namespace g3
 
 
 
-        public PackedSparseMatrix Square()
+        public PackedSparseMatrix Square(int maxDegreeOfParallelism)
         {
             if (Rows.Length != Columns)
                 throw new Exception("PackedSparseMatrix.Square: matrix is not square!");
@@ -573,7 +573,7 @@ namespace g3
                         }
                     }
                 }
-            });
+            }, maxDegreeOfParallelism);
 
             PackedSparseMatrix R = new PackedSparseMatrix(entries, N, N, true);
             return R;

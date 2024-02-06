@@ -67,7 +67,7 @@ namespace g3
 		}
 
 
-		public virtual bool Cut()
+		public virtual bool Cut(int maxDegreeOfParallelism)
 		{
 			double invalidDist = double.MinValue;
 
@@ -87,7 +87,7 @@ namespace g3
 					signs[vid] = (v - PlaneOrigin).Dot(PlaneNormal);
 				} else
 					signs[vid] = invalidDist;
-			});
+			}, maxDegreeOfParallelism);
 
 			HashSet<int> ZeroEdges = new HashSet<int>();
 			HashSet<int> ZeroVertices = new HashSet<int>();

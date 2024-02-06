@@ -56,13 +56,13 @@ namespace g3
         }
 
 
-        public virtual bool Extrude()
+        public virtual bool Extrude(int maxDegreeOfParallelism)
         {
             MeshNormals normals = null;
             bool bHaveNormals = Mesh.HasVertexNormals;
             if (!bHaveNormals) {
                 normals = new MeshNormals(Mesh);
-                normals.Compute();
+                normals.Compute(maxDegreeOfParallelism);
             }
 
             InitialLoops = new MeshBoundaryLoops(Mesh);

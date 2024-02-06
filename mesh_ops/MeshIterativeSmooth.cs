@@ -38,7 +38,7 @@ namespace g3
         }
 
 
-        public virtual bool Smooth()
+        public virtual bool Smooth(int maxDegreeOfParallelism)
         {
             int NV = Vertices.Length;
 
@@ -64,9 +64,9 @@ namespace g3
 
             for (int round = 0; round < num_rounds; ++round) {
 
-                gParallel.ForEach<int>(indices, smooth);
+                gParallel.ForEach<int>(indices, smooth, maxDegreeOfParallelism);
                 if ( ProjectF != null )
-                    gParallel.ForEach<int>(indices, project);
+                    gParallel.ForEach<int>(indices, project, maxDegreeOfParallelism);
 
                 // bake
                 for (int i = 0; i < NV; ++i)
