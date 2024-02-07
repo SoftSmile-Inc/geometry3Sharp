@@ -62,7 +62,7 @@ namespace gs
             else if (type == UseFillType.MinimalFill)
                 bResult = fill_minimal(maxDegreeOfParallelism);
             else if (type == UseFillType.PlanarSpansFill)
-                bResult = fill_planar_spans(maxDegreeOfParallelism);
+                bResult = fill_planar_spans();
             else
                 bResult = fill_smooth(maxDegreeOfParallelism);
 
@@ -163,7 +163,7 @@ namespace gs
         ///    2) 
         /// 
         /// </summary>
-        bool fill_planar_spans(int maxDegreeOfParallelism)
+        bool fill_planar_spans()
         {
             Dictionary<Vector3d, List<EdgeSpan>> span_sets = find_coplanar_span_sets(Mesh, FillLoop);
 
@@ -179,7 +179,7 @@ namespace gs
                             PlanarSpansFiller filler = new PlanarSpansFiller(Mesh, subset);
                             filler.FillTargetEdgeLen = TargetEdgeLength;
                             filler.SetPlane(pos, normal);
-                            filler.Fill(maxDegreeOfParallelism);
+                            filler.Fill();
                         }
                     }
 
@@ -187,7 +187,7 @@ namespace gs
                     PlanarSpansFiller filler = new PlanarSpansFiller(Mesh, spans);
                     filler.FillTargetEdgeLen = TargetEdgeLength;
                     filler.SetPlane(pos, normal);
-                    filler.Fill(maxDegreeOfParallelism);
+                    filler.Fill();
                 }
             }
 

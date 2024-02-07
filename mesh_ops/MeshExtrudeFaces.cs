@@ -75,7 +75,7 @@ namespace g3
         /// However changes are not backed out, so if false is returned, input Mesh is in 
         /// undefined state (generally means there are some holes)
         /// </summary>
-        public virtual bool Extrude(int maxDegreeOfParallelism)
+        public virtual bool Extrude()
         {
             MeshEditor editor = new MeshEditor(Mesh);
 
@@ -85,7 +85,7 @@ namespace g3
             bool bHaveNormals = Mesh.HasVertexNormals;
             if (!bHaveNormals) {
                 normals = new MeshNormals(Mesh);
-                normals.Compute(maxDegreeOfParallelism);
+                normals.Compute();
             }
 
             ExtrudeVertices = new MeshVertexSelection(Mesh);

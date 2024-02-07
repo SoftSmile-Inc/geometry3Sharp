@@ -308,7 +308,7 @@ spatial_add_triangles(et.a, et.b);
             return pokeinfo.new_vid;
         }
 
-        public virtual bool Apply(int maxDegreeOfParallelism)
+        public virtual bool Apply()
 		{
             HashSet<int> OnCurveVerts = new HashSet<int>();     // original vertices that were epsilon-coincident w/ curve vertices
             insert_corners(OnCurveVerts);
@@ -364,18 +364,25 @@ spatial_add_triangles(et.a, et.b);
                 // [TODO] could walk along mesh from a to b, rather than computing for entire mesh?
                 if ( signs.Length < MaxVID )
                     signs = new sbyte[2*MaxVID];
-                gParallel.ForEach(vertices, (vid) => {
-                    if (Mesh.IsVertex(vid)) {
-                        if (vid == i0_vid || vid == i1_vid) {
-                            signs[vid] = 0;
-                        } else {
-                            Vector2d v2 = PointF(vid);
-                            // tolerance defines band in which we will consider values to be zero
-                            signs[vid] = (sbyte)seg.WhichSide(v2, SpatialEpsilon);
-                        }
-                    } else
+                // TODO: It used to be a parallel opration, but
+                // 1. It pollutes the Generate interface
+                // 2. The operations are instant
+                for (int vid = 0; vid < MaxVID; vid++)
+                {
+                    if (!Mesh.IsVertex(vid))
+                    {
                         signs[vid] = sbyte.MaxValue;
-                }, maxDegreeOfParallelism);
+                        continue;
+                    }
+                    if (vid == i0_vid || vid == i1_vid)
+                    {
+                        signs[vid] = 0;
+                        continue;
+                    }
+                    Vector2d v2 = PointF(vid);
+                    // tolerance defines band in which we will consider values to be zero
+                    signs[vid] = (sbyte)seg.WhichSide(v2, SpatialEpsilon);
+                }
 
                 // have to skip processing of new edges. If edge id
                 // is > max at start, is new. Otherwise if in NewEdges list, also new.

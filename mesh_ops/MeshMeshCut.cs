@@ -82,12 +82,12 @@ namespace g3
             }
         }
 
-        public void AppendSegments(double r, int maxDegreeOfParallelism)
+        public void AppendSegments(double r)
         {
             foreach ( var seg in Segments ) {
                 Segment3d s = new Segment3d(seg.v0.v, seg.v1.v);
                 if ( Target.FindEdge(seg.v0.vtx_id, seg.v1.vtx_id) == DMesh3.InvalidID )
-                    MeshEditor.AppendLine(Target, s, (float)r, maxDegreeOfParallelism);
+                    MeshEditor.AppendLine(Target, s, (float)r);
             }
         }
 
@@ -468,7 +468,7 @@ namespace g3
             path.AppendVertex(p0); path.AppendVertex(p1);
 
             MeshInsertUVPolyCurve insert = new MeshInsertUVPolyCurve(mesh, path);
-            insert.Apply(maxDegreeOfParallelism);
+            insert.Apply();
 
             MeshVertexSelection cutVerts = new MeshVertexSelection(mesh);
             cutVerts.SelectEdgeVertices(insert.OnCutEdges);

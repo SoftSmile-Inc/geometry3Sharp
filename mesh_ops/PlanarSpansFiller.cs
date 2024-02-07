@@ -69,7 +69,7 @@ namespace g3
         }
 
 
-        public bool Fill(int maxDegreeOfParallelism)
+        public bool Fill()
         {
             compute_polygon();
 
@@ -101,7 +101,7 @@ namespace g3
                     EdgeVertices = nDivisions
                 };
             }
-            DMesh3 FillMesh = meshgen.Generate(maxDegreeOfParallelism).MakeDMesh();
+            DMesh3 FillMesh = meshgen.Generate().MakeDMesh();
             FillMesh.ReverseOrientation();   // why?!?
 
             int[] polyVertices = null;
@@ -111,7 +111,7 @@ namespace g3
             ValidationStatus status = insert.Validate(MathUtil.ZeroTolerancef * scale);
             bool failed = true;
             if (status == ValidationStatus.Ok) {
-                if (insert.Apply(maxDegreeOfParallelism)) {
+                if (insert.Apply()) {
                     insert.Simplify();
                     polyVertices = insert.CurveVertices;
                     failed = false;

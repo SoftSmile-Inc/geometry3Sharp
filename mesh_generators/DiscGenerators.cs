@@ -13,7 +13,7 @@ namespace g3
         public float EndAngleDeg = 360.0f;
         public int Slices = 32;
 
-        override public MeshGenerator Generate(int maxDegreeOfParallelism)
+        override public MeshGenerator Generate()
         {
             vertices = new VectorArray3d(Slices + 1);
             uv = new VectorArray2f(Slices + 1);
@@ -64,7 +64,7 @@ namespace g3
         public float EndAngleDeg = 360.0f;
         public int Slices = 32;
 
-        override public MeshGenerator Generate(int maxDegreeOfParallelism)
+        override public MeshGenerator Generate()
         {
             vertices = new VectorArray3d(2*Slices);
             uv = new VectorArray2f(2*Slices);

@@ -166,7 +166,7 @@ namespace g3
                         EdgeVertices = nDivisions
                     };
                 }
-                DMesh3 FillMesh = meshgen.Generate(maxDegreeOfParallelism).MakeDMesh();
+                DMesh3 FillMesh = meshgen.Generate().MakeDMesh();
                 FillMesh.ReverseOrientation();   // why?!?
 
                 // convenient list
@@ -182,7 +182,7 @@ namespace g3
                     ValidationStatus status = insert.Validate(MathUtil.ZeroTolerancef * scale);
                     bool failed = true;
                     if (status == ValidationStatus.Ok) {
-                        if (insert.Apply(maxDegreeOfParallelism)) {
+                        if (insert.Apply()) {
                             insert.Simplify();
                             polyVertices[pi] = insert.CurveVertices;
                             failed = (insert.Loops.Count != 1) ||

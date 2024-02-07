@@ -454,16 +454,24 @@ namespace g3
             vCross.Normalize();
             return vCross;
         }
-        public static Vector3d Normal(Vector3d v1, Vector3d v2, Vector3d v3) {
-            return Normal(ref v1, ref v2, ref v3);
+
+        public static Vector3d Normal(Vector3d v1, Vector3d v2, Vector3d v3)
+        {
+            Vector3d edge1 = v2 - v1;
+            Vector3d edge2 = v3 - v2;
+            edge1.Normalize();
+            edge2.Normalize();
+            Vector3d vCross = edge1.Cross(edge2);
+            vCross.Normalize();
+            return vCross;
         }
 
 
-		/// <summary>
-		/// compute vector in direction of triangle normal (cross-product). No normalization.
-		/// </summary>
-		/// <returns>The normal direction.</returns>
-		public static Vector3d FastNormalDirection(ref Vector3d v1, ref Vector3d v2, ref Vector3d v3)
+        /// <summary>
+        /// compute vector in direction of triangle normal (cross-product). No normalization.
+        /// </summary>
+        /// <returns>The normal direction.</returns>
+        public static Vector3d FastNormalDirection(ref Vector3d v1, ref Vector3d v2, ref Vector3d v3)
 		{
 			Vector3d edge1 = v2 - v1;
 			Vector3d edge2 = v3 - v1;

@@ -23,9 +23,9 @@ namespace g3
         }
         NormalizationTypes NormalizeType = NormalizationTypes.CubeMapping;
 
-        public override MeshGenerator Generate(int maxDegreeOfParallelism)
+        public override MeshGenerator Generate()
         {
-            base.Generate(maxDegreeOfParallelism);
+            base.Generate();
             for ( int i = 0; i < vertices.Count; ++i ) {
                 Vector3d v = vertices[i] - Box.Center;
                 if (NormalizeType == NormalizationTypes.CubeMapping) {

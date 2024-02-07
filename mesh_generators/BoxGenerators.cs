@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace g3
 {
@@ -12,7 +11,7 @@ namespace g3
         public Box3d Box = Box3d.UnitZeroCentered;
         public bool NoSharedVertices = false;
 
-        public override MeshGenerator Generate(int maxDegreeOfParallelism)
+        public override MeshGenerator Generate()
         {
             vertices = new VectorArray3d((NoSharedVertices) ? (4 * 6) : 8);
             uv = new VectorArray2f(vertices.Count);
@@ -74,7 +73,7 @@ namespace g3
         public int EdgeVertices = 8;
         public bool NoSharedVertices = false;
 
-        public override MeshGenerator Generate(int maxDegreeOfParallelism)
+        public override MeshGenerator Generate()
         {
             int N = (EdgeVertices > 1) ? EdgeVertices : 2;
             int Nm2 = N - 2;
