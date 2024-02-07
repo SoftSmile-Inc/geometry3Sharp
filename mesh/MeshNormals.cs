@@ -2,6 +2,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace g3
 {
@@ -36,13 +37,19 @@ namespace g3
         {
             arrayPool ??= ArrayPool<Vector3f>.Shared;
             Vector3f[] normalsArray = arrayPool.Rent(Mesh.MaxVertexID);
-            QuickComputeToArray(Mesh, normalsArray);
-            int NV = Mesh.MaxVertexID;
-            if (NV != Normals.size)
-                Normals.resize(NV);
-            for (int vid = 0; vid < NV; ++vid)
-                Normals[vid] = (Vector3d)normalsArray[vid];
-            arrayPool.Return(normalsArray);
+            try
+            {
+                QuickComputeToArray(Mesh, normalsArray);
+                int NV = Mesh.MaxVertexID;
+                if (NV != Normals.size)
+                    Normals.resize(NV);
+                for (int vid = 0; vid < NV; ++vid)
+                    Normals[vid] = (Vector3d)normalsArray[vid];
+            }
+            finally
+            {
+                arrayPool.Return(normalsArray);
+            }
         }
 
         public Vector3d this[int vid] {
@@ -64,20 +71,44 @@ namespace g3
             }
         }
 
-        public static void QuickCompute(DMesh3 mesh, ArrayPool<Vector3f>? arrayPool = null)
+        public static void QuickCompute(DMesh3 mesh,
+            ArrayPool<Vector3f>? arrayPool = null)
         {
             arrayPool ??= ArrayPool<Vector3f>.Shared;
             Vector3f[] normalsArray = arrayPool.Rent(mesh.MaxVertexID);
-            QuickComputeToArray(mesh, normalsArray);
-            // Write to mesh
-            mesh.EnableVertexNormals(Vector3f.Zero);
-            for (int vid = 0; vid < mesh.MaxVertexID; vid++)
+            try
             {
-                if (!mesh.IsVertex(vid))
-                    continue;
-                mesh.SetVertexNormal(vid, normalsArray[vid]);
+                QuickComputeToArray(mesh, normalsArray);
+                CopyToMesh(mesh, normalsArray);
             }
-            arrayPool.Return(normalsArray);
+            finally
+            {
+                arrayPool.Return(normalsArray);
+            }
+        }
+
+        private unsafe static void CopyToMesh(DMesh3 mesh,
+            Vector3f[] probablyLargerNormalsArray,
+            ArrayPool<float>? arrayPool = null)
+        {
+            // Create a temp array
+            arrayPool ??= ArrayPool<float>.Shared;
+            float[] floatNormalsArray = arrayPool.Rent(mesh.MaxVertexID * 3);
+            try
+            {
+                fixed (Vector3f* vectorPointer = &probablyLargerNormalsArray[0])
+                    Marshal.Copy((IntPtr)vectorPointer,
+                        destination: floatNormalsArray,
+                        startIndex: 0,
+                        length: mesh.MaxVertexID * 3);
+                // We don't need to do mesh.EnableVertexNormals(),
+                // because it only initializes the buffer
+                mesh.NormalsBuffer = new DVector<float>(floatNormalsArray, count: mesh.MaxVertexID * 3);
+            }
+            finally
+            {
+                arrayPool.Return(floatNormalsArray);
+            }
         }
 
         private static void QuickComputeToArray(DMesh3 mesh, Vector3f[] normalsArray)
@@ -103,7 +134,7 @@ namespace g3
             for (int vid = 0; vid < mesh.MaxVertexID; vid++)
             {
                 Vector3f vertexNormal = normalsArray[vid];
-                if (vertexNormal.LengthSquared > MathUtil.ZeroTolerancef)
+                if (vertexNormal != Vector3f.Zero)
                     normalsArray[vid] = vertexNormal.Normalized;
             }
         }

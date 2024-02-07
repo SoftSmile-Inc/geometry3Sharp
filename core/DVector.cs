@@ -41,9 +41,9 @@ namespace g3
             }
         }
 
-        public DVector(T[] data)
+        public DVector(T[] data, int? count = null)
         {
-            Initialize(data);
+            Initialize(data, count);
         }
 
         public DVector(IEnumerable<T> init)
@@ -279,9 +279,10 @@ namespace g3
 
 
 
-        public void Initialize(T[] data)
+        public void Initialize(T[] data, int? count = null)
         {
-            int blocks = data.Length / nBlockSize;
+            int length = count ?? data.Length;
+            int blocks = length / nBlockSize;
             Blocks = new List<T[]>();
             int ai = 0;
             for (int i = 0; i < blocks; ++i) {
@@ -290,7 +291,7 @@ namespace g3
                 Blocks.Add(block);
                 ai += nBlockSize;
             }
-            iCurBlockUsed = data.Length - ai;
+            iCurBlockUsed = length - ai;
             if (iCurBlockUsed != 0) {
                 T[] last = new T[nBlockSize];
                 Array.Copy(data, ai, last, 0, iCurBlockUsed);
