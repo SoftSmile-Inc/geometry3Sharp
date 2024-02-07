@@ -1,7 +1,8 @@
-﻿using System;
+﻿#nullable enable
+
+using System;
+using System.Buffers;
 using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
 
 
 namespace g3
@@ -56,7 +57,7 @@ namespace g3
 
 
 
-        public void BuildLinear(int maxDegreeOfParallelism)
+        public void BuildLinear()
         {
             int NV = mesh.MaxVertexID;
 
@@ -107,7 +108,7 @@ namespace g3
 
 
 
-            int[] tri_order = get_tri_order_by_axis_sort(maxDegreeOfParallelism);
+            int[] tri_order = get_tri_order_by_axis_sort();
             int tri_count = tri_order.Length;
 
             for (int ii = 0; ii < tri_count; ++ii) {
@@ -131,7 +132,7 @@ namespace g3
 
 
 
-        int[] get_tri_order_by_axis_sort(int maxDegreeOfParallelism)
+        int[] get_tri_order_by_axis_sort(ArrayPool<Vector3d>? arrayPool = null)
         {
             int i = 0;
             int[] tri_order = new int[mesh.TriangleCount];
@@ -142,21 +143,31 @@ namespace g3
                     tri_order[i++] = ti;
             }
 
-            // precompute triangle centroids - wildly expensive to
-            // do it inline in sort (!)  I guess O(N) vs O(N log N)
-            Vector3d[] centroids = new Vector3d[mesh.MaxTriangleID];
-            gParallel.ForEach(mesh.TriangleIndices(), (ti) => {
-                if (mesh.IsTriangle(ti))
-                    centroids[ti] = mesh.GetTriCentroid(ti);
-            }, maxDegreeOfParallelism);
+            arrayPool ??= ArrayPool<Vector3d>.Shared;
+            Vector3d[] rentedArray = arrayPool.Rent(mesh.MaxTriangleID);
+            try
+            {
+                // precompute triangle centroids - wildly expensive to
+                // do it inline in sort (!)  I guess O(N) vs O(N log N)
+                Vector3d[] centroids = new Vector3d[mesh.MaxTriangleID];
+                for (int tid = 0; tid < mesh.MaxTriangleID; tid++)
+                {
+                    if (!mesh.IsTriangle(tid))
+                        continue;
+                    centroids[tid] = mesh.GetTriCentroid(tid);
+                }
 
-
-            Array.Sort(tri_order, (t0, t1) => {
-                double f0 = centroids[t0].x;
-                double f1 = centroids[t1].x;
-                return (f0 == f1) ? 0 : (f0 < f1) ? -1 : 1;
-            });
-
+                Array.Sort(tri_order, (t0, t1) =>
+                {
+                    double f0 = centroids[t0].x;
+                    double f1 = centroids[t1].x;
+                    return (f0 == f1) ? 0 : (f0 < f1) ? -1 : 1;
+                });
+            }
+            finally
+            {
+                arrayPool.Return(rentedArray);
+            }
             return tri_order;
         }
 

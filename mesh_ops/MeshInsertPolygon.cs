@@ -22,11 +22,11 @@ namespace g3
         public HashSet<int> InsertedPolygonEdges;
         public MeshFaceSelection InteriorTriangles;
 
-        public bool Insert(int maxDegreeOfParallelism)
+        public bool Insert()
         {
             OuterInsert = new MeshInsertUVPolyCurve(Mesh, Polygon.Outer);
             Util.gDevAssert(OuterInsert.Validate() == ValidationStatus.Ok);
-            bool outerApplyOK = OuterInsert.Apply(maxDegreeOfParallelism);
+            bool outerApplyOK = OuterInsert.Apply();
             if (outerApplyOK == false || OuterInsert.Loops.Count == 0)
                 return false;
             if (SimplifyInsertion)
@@ -36,7 +36,7 @@ namespace g3
             for (int hi = 0; hi < Polygon.Holes.Count; ++hi) {
                 MeshInsertUVPolyCurve insert = new MeshInsertUVPolyCurve(Mesh, Polygon.Holes[hi]);
                 Util.gDevAssert(insert.Validate() == ValidationStatus.Ok);
-                insert.Apply(maxDegreeOfParallelism);
+                insert.Apply();
                 if (SimplifyInsertion)
                     insert.Simplify();
                 HoleInserts.Add(insert);

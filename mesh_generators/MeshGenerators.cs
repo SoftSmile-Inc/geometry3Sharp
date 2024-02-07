@@ -19,7 +19,7 @@ namespace g3
 
 
 
-        abstract public MeshGenerator Generate(int maxDegreeOfParallelism);
+        abstract public MeshGenerator Generate();
 
 
         public virtual void MakeMesh(SimpleMesh m)

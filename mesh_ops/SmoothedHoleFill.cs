@@ -127,7 +127,7 @@ namespace gs
                 extrude.ExtrudedPositionF = (v, n, vid) => {
                     return v + OffsetDistance * OffsetDirection;
                 };
-                if (!extrude.Extrude(maxDegreeOfParallelism))
+                if (!extrude.Extrude())
                     return false;
                 tris.Select(extrude.JoinTriangles);
             }

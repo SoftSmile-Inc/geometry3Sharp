@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace g3
 {
@@ -67,7 +68,7 @@ namespace g3
 		}
 
 
-		public virtual bool Cut(int maxDegreeOfParallelism)
+		public virtual bool Cut()
 		{
 			double invalidDist = double.MinValue;
 
@@ -81,13 +82,18 @@ namespace g3
 			// compute signs
 			int MaxVID = Mesh.MaxVertexID;
 			double[] signs = new double[MaxVID];
-			gParallel.ForEach(Interval1i.Range(MaxVID), (vid) => {
-				if (Mesh.IsVertex(vid)) {
-					Vector3d v = Mesh.GetVertex(vid);
-					signs[vid] = (v - PlaneOrigin).Dot(PlaneNormal);
-				} else
-					signs[vid] = invalidDist;
-			}, maxDegreeOfParallelism);
+            // That used to be a parallel operation,
+            // but it's pointless as the operation of Dot is cheap
+            for (int vid = 0; vid < MaxVID; vid++)
+            {
+                if (!Mesh.IsVertex(vid))
+                {
+                    signs[vid] = invalidDist;
+                    continue;
+                }
+                Vector3d v = Mesh.GetVertexUnsafe(vid);
+                signs[vid] = (v - PlaneOrigin).Dot(PlaneNormal);
+            }
 
 			HashSet<int> ZeroEdges = new HashSet<int>();
 			HashSet<int> ZeroVertices = new HashSet<int>();

@@ -11,11 +11,10 @@ namespace geometry3sharp.Tests
 {
     public class StandardMeshReaderTests
     {
-        private static readonly int MaxDegreeOfParallelism = Environment.ProcessorCount;
         private static string ModelsDirectoryPath => Path.Combine("..", "..", "..", "models");
         private static string BoxPathWithoutExtension => Path.Combine(ModelsDirectoryPath, "box");
         private static readonly Lazy<DMesh3> BoxMesh =
-            new Lazy<DMesh3>(() => new TrivialBox3Generator().Generate(MaxDegreeOfParallelism).MakeDMesh());
+            new Lazy<DMesh3>(() => new TrivialBox3Generator().Generate().MakeDMesh());
 
         [Fact(Skip = "Use this method to regenerate the box")]
         public void WriteAllFiles()

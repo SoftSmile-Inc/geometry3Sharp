@@ -134,7 +134,7 @@ namespace gs
                 MeshNormals normals = null;
                 if (Mesh.HasVertexNormals == false) {
                     normals = new MeshNormals(Mesh);
-                    normals.Compute(maxDegreeOfParallelism);
+                    normals.Compute();
                 }
 
                 gParallel.ForEach(Mesh.VertexIndices(), (vid) => {

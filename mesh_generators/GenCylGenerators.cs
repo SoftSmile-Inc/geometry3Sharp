@@ -74,7 +74,7 @@ namespace g3
 
 
 
-        override public MeshGenerator Generate(int maxDegreeOfParallelism)
+        override public MeshGenerator Generate()
         {
             if (Polygon == null)
                 Polygon = Polygon2d.MakeCircle(1.0f, 8);

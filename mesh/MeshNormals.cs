@@ -1,13 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿#nullable enable
+
+using System;
+using System.Buffers;
+using System.Runtime.InteropServices;
 
 namespace g3
 {
     public class MeshNormals
     {
-        public IMesh Mesh;
+        public DMesh3 Mesh;
         public DVector<Vector3d> Normals;
 
         /// <summary>
@@ -16,8 +17,6 @@ namespace g3
         /// </summary>
         public Func<int, Vector3d> VertexF;
 
-
-
         public enum NormalsTypes
         {
             Vertex_OneRingFaceAverage_AreaWeighted
@@ -25,7 +24,7 @@ namespace g3
         public NormalsTypes NormalType;
 
 
-        public MeshNormals(IMesh mesh, NormalsTypes eType = NormalsTypes.Vertex_OneRingFaceAverage_AreaWeighted)
+        public MeshNormals(DMesh3 mesh, NormalsTypes eType = NormalsTypes.Vertex_OneRingFaceAverage_AreaWeighted)
         {
             Mesh = mesh;
             NormalType = eType;
@@ -34,11 +33,24 @@ namespace g3
         }
 
 
-        public void Compute(int maxDegreeOfParallelism)
+        public void Compute(ArrayPool<Vector3f>? arrayPool = null)
         {
-            Compute_FaceAvg_AreaWeighted(maxDegreeOfParallelism);
+            arrayPool ??= ArrayPool<Vector3f>.Shared;
+            Vector3f[] normalsArray = arrayPool.Rent(Mesh.MaxVertexID);
+            try
+            {
+                QuickComputeToArray(Mesh, normalsArray);
+                int NV = Mesh.MaxVertexID;
+                if (NV != Normals.size)
+                    Normals.resize(NV);
+                for (int vid = 0; vid < NV; ++vid)
+                    Normals[vid] = (Vector3d)normalsArray[vid];
+            }
+            finally
+            {
+                arrayPool.Return(normalsArray);
+            }
         }
-
 
         public Vector3d this[int vid] {
             get { return Normals[vid]; }
@@ -59,51 +71,72 @@ namespace g3
             }
         }
 
-
-
-
-        // TODO: parallel version, cache tri normals
-        void Compute_FaceAvg_AreaWeighted(int maxDegreeOfParallelism)
+        public static void QuickCompute(DMesh3 mesh,
+            ArrayPool<Vector3f>? arrayPool = null)
         {
-            int NV = Mesh.MaxVertexID;
-            if ( NV != Normals.size ) 
-                Normals.resize(NV);
-            for (int i = 0; i < NV; ++i)
-                Normals[i] = Vector3d.Zero;
-
-            SpinLock Normals_lock = new SpinLock();
-
-            gParallel.ForEach(Mesh.TriangleIndices(), (ti) => {
-                Index3i tri = Mesh.GetTriangle(ti);
-                Vector3d va = Mesh.GetVertex(tri.a);
-                Vector3d vb = Mesh.GetVertex(tri.b);
-                Vector3d vc = Mesh.GetVertex(tri.c);
-                Vector3d N = MathUtil.Normal(ref va, ref vb, ref vc);
-                double a = MathUtil.Area(ref va, ref vb, ref vc);
-                bool taken = false;
-                Normals_lock.Enter(ref taken);
-                Normals[tri.a] += a * N;
-                Normals[tri.b] += a * N;
-                Normals[tri.c] += a * N;
-                Normals_lock.Exit();
-            }, maxDegreeOfParallelism);
-
-            gParallel.BlockStartEnd(0, NV - 1, (vi_start, vi_end) => {
-                for (int vi = vi_start; vi <= vi_end; vi++) {
-                    if (Normals[vi].LengthSquared > MathUtil.ZeroTolerancef)
-                        Normals[vi] = Normals[vi].Normalized;
-                }
-            }, maxDegreeOfParallelism);
+            arrayPool ??= ArrayPool<Vector3f>.Shared;
+            Vector3f[] normalsArray = arrayPool.Rent(mesh.MaxVertexID);
+            try
+            {
+                QuickComputeToArray(mesh, normalsArray);
+                CopyToMesh(mesh, normalsArray);
+            }
+            finally
+            {
+                arrayPool.Return(normalsArray);
+            }
         }
 
-
-
-
-        public static void QuickCompute(DMesh3 mesh, int maxDegreeOfParallelism)
+        private unsafe static void CopyToMesh(DMesh3 mesh,
+            Vector3f[] probablyLargerNormalsArray,
+            ArrayPool<float>? arrayPool = null)
         {
-            MeshNormals normals = new MeshNormals(mesh);
-            normals.Compute(maxDegreeOfParallelism);
-            normals.CopyTo(mesh);
+            // Create a temp array
+            arrayPool ??= ArrayPool<float>.Shared;
+            float[] floatNormalsArray = arrayPool.Rent(mesh.MaxVertexID * 3);
+            try
+            {
+                fixed (Vector3f* vectorPointer = &probablyLargerNormalsArray[0])
+                    Marshal.Copy((IntPtr)vectorPointer,
+                        destination: floatNormalsArray,
+                        startIndex: 0,
+                        length: mesh.MaxVertexID * 3);
+                // We don't need to do mesh.EnableVertexNormals(),
+                // because it only initializes the buffer
+                mesh.NormalsBuffer = new DVector<float>(floatNormalsArray, count: mesh.MaxVertexID * 3);
+            }
+            finally
+            {
+                arrayPool.Return(floatNormalsArray);
+            }
+        }
+
+        private static void QuickComputeToArray(DMesh3 mesh, Vector3f[] normalsArray)
+        {
+            for (int vid = 0; vid < mesh.MaxVertexID; vid++)
+                normalsArray[vid] = Vector3f.Zero;
+            for (int tid = 0; tid < mesh.MaxTriangleID; tid++)
+            {
+                if (!mesh.IsTriangle(tid))
+                    continue;
+                Index3i triangle = mesh.GetTriangle(tid);
+                Vector3d vertexA = mesh.GetVertexUnsafe(triangle.a);
+                Vector3d vertexB = mesh.GetVertexUnsafe(triangle.b);
+                Vector3d vertexC = mesh.GetVertexUnsafe(triangle.c);
+                Vector3d triangleNormal = MathUtil.Normal(vertexA, vertexB, vertexC);
+                double triangleArea = MathUtil.Area(vertexA, vertexB, vertexC);
+                Vector3f areaNormalMultiplication = (Vector3f)(triangleArea * triangleNormal);
+                normalsArray[triangle.a] += areaNormalMultiplication;
+                normalsArray[triangle.b] += areaNormalMultiplication;
+                normalsArray[triangle.c] += areaNormalMultiplication;
+            }
+            // Normalize array
+            for (int vid = 0; vid < mesh.MaxVertexID; vid++)
+            {
+                Vector3f vertexNormal = normalsArray[vid];
+                if (vertexNormal != Vector3f.Zero)
+                    normalsArray[vid] = vertexNormal.Normalized;
+            }
         }
 
 
