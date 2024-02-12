@@ -20,15 +20,11 @@ namespace g3
 				System.Diagnostics.Debugger.Break();
 		}
 
-        static public bool DebugBreakOnDevAssert = true;
 
         [Conditional("DEBUG")] 
         static public void gDevAssert(bool bValue, string message = "gDevAssert") {
             if (bValue == false) {
-                if (DebugBreakOnDevAssert)
-                    System.Diagnostics.Debugger.Break();
-                else
-                    throw new Exception(message);
+                throw new Exception(message);
             }
         }
 	
