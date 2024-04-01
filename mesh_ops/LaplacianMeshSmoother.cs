@@ -402,7 +402,7 @@ namespace g3
                     constrained.Add(sub_vid);
             }
 
-            if (constrained.Count > 0) {
+            if (constrained != null && constrained.Count > 0) {
                 w = Math.Sqrt(w);
                 for (int k = 0; k < nConstrainLoops; ++k) {
                     HashSet<int> next_layer = new HashSet<int>();
