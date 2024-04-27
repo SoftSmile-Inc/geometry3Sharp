@@ -134,13 +134,10 @@ namespace g3
         /// </summary>
         public async Task<IOReadResult> ReadAsync(Stream stream, string sExtension, ReadOptions options, CancellationToken cancellationToken = default)
         {
-            byte[] buffer = new byte[stream.Length];
-            int readBytes =
-                await stream.ReadAsync(buffer, offset: 0, count: buffer.Length, cancellationToken)
-                    .ConfigureAwait(false);
-            if (readBytes != buffer.Length)
-                throw new Exception("Looks like the buffer length is not equal to the stream length");
-            using var memoryStream = new MemoryStream(buffer);
+            using var memoryStream = new MemoryStream(capacity: (int)stream.Length);
+            // 81_920 is a default value for the buffer size
+            await stream.CopyToAsync(memoryStream, 81_920, cancellationToken).ConfigureAwait(false);
+            memoryStream.Seek(offset: 0, loc: SeekOrigin.Begin);
             return Read(memoryStream, sExtension, options);
         }
 
