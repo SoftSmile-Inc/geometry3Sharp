@@ -45,6 +45,7 @@ namespace g3
         }
         public static void Rotate(IDeformableMesh mesh, Vector3d origin, Quaternionf rotation)
         {
+            bool bHasNormals = mesh.HasVertexNormals;
             int NV = mesh.MaxVertexID;
             for ( int vid = 0; vid < NV; ++vid ) {
                 if (mesh.IsVertex(vid)) {
@@ -53,6 +54,8 @@ namespace g3
                     v = (Vector3d)(rotation * (Vector3f)v);
                     v += origin;
                     mesh.SetVertex(vid, v);
+                    if ( bHasNormals )
+                        mesh.SetVertexNormal(vid, (Vector3f)(rotation * mesh.GetVertexNormal(vid)) );
                 }
             }
         }
