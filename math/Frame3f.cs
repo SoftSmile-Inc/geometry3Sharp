@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Diagnostics;
 using g3;
+using System.Globalization;
 
 namespace g3
 {
@@ -66,6 +67,12 @@ namespace g3
             this.origin = origin;
             Matrix3f m = new Matrix3f(x, y, z, false);
             this.rotation = m.ToQuaternion();
+        }
+
+        public Frame3f(double x, double y, double z, double rx, double ry, double rz, double rw)
+        {
+            this.origin = new Vector3f((float)x, (float)y, (float)z);
+            this.rotation = new Quaternionf((float)rx, (float)ry, (float)rz, (float)rw);
         }
 
 
@@ -448,10 +455,17 @@ namespace g3
                 rotation.EpsilonEqual(f2.rotation, epsilon);
         }
 
-
-        public override readonly string ToString() {
-            return ToString("F4");
+        public readonly string ToShortString() {
+            string xString = origin.x.ToString("F4", CultureInfo.InvariantCulture);
+            string yString = origin.y.ToString("F4", CultureInfo.InvariantCulture);
+            string zString = origin.z.ToString("F4", CultureInfo.InvariantCulture);
+            string rxString = rotation.x.ToString("F4", CultureInfo.InvariantCulture);
+            string ryString = rotation.y.ToString("F4", CultureInfo.InvariantCulture);
+            string rzString = rotation.z.ToString("F4", CultureInfo.InvariantCulture);
+            string rwString = rotation.w.ToString("F4", CultureInfo.InvariantCulture);
+            return string.Join(", ", xString, yString, zString, rxString, ryString, rzString, rwString);
         }
+
         public readonly string ToString(string fmt) {
             return string.Format("[Frame3f: Origin={0}, X={1}, Y={2}, Z={3}]", Origin.ToString(fmt), X.ToString(fmt), Y.ToString(fmt), Z.ToString(fmt));
         }
