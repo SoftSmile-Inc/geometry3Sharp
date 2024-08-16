@@ -53,6 +53,18 @@ namespace g3
                 }
             }
         }
+ 
+        public Bitmap2(BitArray bits, Vector2i dimensions)
+        {
+            if (dimensions.x * dimensions.y != bits.Length)
+            {
+                throw new ArgumentException(
+                    $"Bit array length {bits.Length} differs from provided dimensions {dimensions}");
+            }
+
+            _dimensions = dimensions;
+            _bits = bits;
+        }
 
         public AxisAlignedBox2i GridBounds => new AxisAlignedBox2i(Vector2i.Zero, Dimensions);
 
@@ -163,6 +175,8 @@ namespace g3
                 }
             }
         }
+
+        public Bitmap2 Not() => new Bitmap2(((BitArray)_bits.Clone()).Not(), _dimensions);
 
         public bool Equals(Bitmap2 other)
         {
