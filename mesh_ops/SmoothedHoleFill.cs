@@ -179,7 +179,7 @@ namespace gs
         void smooth_and_remesh_preserve(MeshFaceSelection tris, bool bFinal, int maxDegreeOfParallelism)
         {
             if (EnableLaplacianSmooth) {
-                LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, true);
+                LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, true, maxDegreeOfParallelism, maxIterations: 1000); // limit 1000 iterations to prevent endless loop
             }
 
             if (RemeshAfterSmooth) {
@@ -206,7 +206,7 @@ namespace gs
         void smooth_and_remesh(MeshFaceSelection tris, int maxDegreeOfParallelism)
         {
             if (EnableLaplacianSmooth) {
-                LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, false);
+                LaplacianMeshSmoother.RegionSmooth(Mesh, tris, 2, 2, false, maxDegreeOfParallelism, maxIterations: 1000); // limit 1000 iterations to prevent endless loop
             }
 
             if (RemeshAfterSmooth) {

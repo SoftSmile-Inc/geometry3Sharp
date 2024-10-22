@@ -198,7 +198,7 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleCG(Vector3d[] Result, int maxDegreeOfParallelism, int maxIterations = int.MaxValue)
+        public bool SolveMultipleCG(Vector3d[] Result, int maxIterations, int maxDegreeOfParallelism)
         {
             if (WeightsM == null)
                 Initialize(maxDegreeOfParallelism);       // force initialize...
@@ -261,7 +261,7 @@ namespace g3
 
 
         // Result must be as large as Mesh.MaxVertexID
-        public bool SolveMultipleRHS(Vector3d[] Result, int maxDegreeOfParallelism, int maxIterations = int.MaxValue)
+        public bool SolveMultipleRHS(Vector3d[] Result, int maxIterations, int maxDegreeOfParallelism)
         {
             if (WeightsM == null)
                 Initialize(maxDegreeOfParallelism);       // force initialize...
@@ -317,23 +317,23 @@ namespace g3
         }
 
 
-        public bool Solve(Vector3d[] Result, int maxIterations = int.MaxValue)
+        public bool Solve(Vector3d[] Result, int maxIterations, int maxDegreeOfParallelism)
         {
             // for small problems, faster to use separate CGs?
             if ( Mesh.VertexCount < 10000 )
-                return SolveMultipleCG(Result, maxIterations);
+                return SolveMultipleCG(Result, maxIterations, maxDegreeOfParallelism);
             else
-                return SolveMultipleRHS(Result, maxIterations);
+                return SolveMultipleRHS(Result, maxIterations, maxDegreeOfParallelism);
         }
 
 
 
 
-        public bool SolveAndUpdateMesh(int maxIterations = int.MaxValue)
+        public bool SolveAndUpdateMesh(int maxIterations, int maxDegreeOfParallelism)
         {
             int N = Mesh.MaxVertexID;
             Vector3d[] Result = new Vector3d[N];
-            if ( Solve(Result, maxIterations) == false )
+            if ( Solve(Result, maxIterations, maxDegreeOfParallelism) == false )
                 return false;
             for (int i = 0; i < N; ++i ) {
                 if ( Mesh.IsVertex(i) ) {
@@ -357,6 +357,8 @@ namespace g3
             int nConstrainLoops, 
             int nIncludeExteriorRings,
             bool bPreserveExteriorRings,
+            int maxDegreeOfParallelism,
+            int maxIterations = int.MaxValue,
             double borderWeight = 10.0, double interiorWeight = 0.0)
         {
             HashSet<int> fixedVerts = new HashSet<int>();
@@ -435,10 +437,8 @@ namespace g3
                 }
             }
 
-            smoother.SolveAndUpdateMesh();
+            smoother.SolveAndUpdateMesh(maxIterations, maxDegreeOfParallelism);
             region.BackPropropagateVertices(true);
         }
-
-
     }
 }
