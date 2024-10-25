@@ -68,6 +68,8 @@ namespace g3
 
         public AxisAlignedBox2i GridBounds => new AxisAlignedBox2i(Vector2i.Zero, Dimensions);
 
+        public BitArray BitsCopy => (BitArray)_bits.Clone();
+
         public bool this[int i]
         {
             get { return _bits[i]; }
@@ -176,7 +178,13 @@ namespace g3
             }
         }
 
-        public Bitmap2 Not() => new Bitmap2(((BitArray)_bits.Clone()).Not(), _dimensions);
+        public Bitmap2 Not() => new Bitmap2(BitsCopy.Not(), _dimensions);
+
+        public Bitmap2 Or(Bitmap2 other) => new Bitmap2(BitsCopy.Or(other._bits), _dimensions);
+
+        public Bitmap2 Xor(Bitmap2 other) => new Bitmap2(BitsCopy.Xor(other._bits), _dimensions);
+
+        public Bitmap2 And(Bitmap2 other) => new Bitmap2(BitsCopy.And(other._bits), _dimensions);
 
         public bool Equals(Bitmap2 other)
         {
