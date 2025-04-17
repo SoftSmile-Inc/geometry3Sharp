@@ -118,14 +118,29 @@ namespace g3
         {
             origin += v;
         }
+
+        /// <summary>
+        /// This method translates frame's origin WITHOUT rotating <see cref="v"/>.
+        /// That means you must either pass a properly rotated vector (e.g., rotation * v) or expect this method to translate along standard basis axes -- AxisX, AxisY, AxisZ,
+        /// which is most likely not the behavior you want.
+        /// </summary>
         public readonly Frame3f Translated(Vector3f v)
         {
             return new Frame3f(this.origin + v, this.rotation);
         }
+ 
+        [Obsolete("Use TranslatedAlongFrameAxis instead. " +
+                  "This is to disambiguate TranslatedAlongFrameAxis from Translated(Vector3f v), which doesn't apply proper orientation for its parameter.")]
         public readonly Frame3f Translated(float fDistance, int nAxis)
         {
             return new Frame3f(this.origin + fDistance * this.GetAxis(nAxis), this.rotation);
         }
+
+        /// <summary>
+        /// Use this method to translate accounting for frame orientation.
+        /// Use this method to disambiguate between the Translated overloads that perform vastly different things.
+        /// </summary>
+        public readonly Frame3f TranslatedAlongFrameAxis(float fDistance, int nAxis) => new Frame3f(origin + fDistance * GetAxis(nAxis), rotation);
 
         public void Scale(float f)
         {
