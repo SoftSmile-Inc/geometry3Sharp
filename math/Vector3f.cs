@@ -48,13 +48,24 @@ namespace g3
             set { y = value.x; z = value.y; }
         }
 
-        public readonly Vector2f ReduceDimension(int dimension)
-        {
-            return dimension == 0 ? yz
-                : dimension == 1 ? xz
-                : dimension == 2 ? xy
-                : throw new Exception("Dimension must be within interval [0..2]");
-        }
+        public readonly Vector4f ExpandDimension(int dimension, float value) =>
+            dimension switch
+            {
+                0 => new Vector4f(value, x, y, z),
+                1 => new Vector4f(x, value, y, z),
+                2 => new Vector4f(x, y, value, z),
+                3 => new Vector4f(x, y, z, value),
+                _ => throw new Exception("Dimension must be within interval [0..3]")
+            };
+
+        public readonly Vector2f ReduceDimension(int dimension) =>
+            dimension switch
+            {
+                0 => yz,
+                1 => xz,
+                2 => xy,
+                _ => throw new Exception("Dimension must be within interval [0..2]")
+            };
 
         public readonly float LengthSquared
         {
