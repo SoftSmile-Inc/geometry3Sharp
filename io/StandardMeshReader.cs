@@ -60,6 +60,7 @@ namespace g3
                 Readers.Add(new STLFormatReader());
                 Readers.Add(new OFFFormatReader());
                 Readers.Add(new BinaryG3FormatReader());
+                Readers.Add(new PlyFormatReader());
             }
         }
 
