@@ -89,6 +89,8 @@ namespace g3
                 writeFunc = Write_G3Mesh;
 			else if (sExtension.Equals(".gts", StringComparison.OrdinalIgnoreCase))
                 writeFunc = Write_GTS;
+            else if (sExtension.Equals(".ply", StringComparison.OrdinalIgnoreCase))
+                writeFunc = Write_PLY;
 
             if (writeFunc == null)
                 return new IOWriteResult(IOCode.UnknownFormatError, "format " + sExtension + " is not supported");
@@ -136,6 +138,7 @@ namespace g3
                 case MeshFileFormats.Stl: writeFunc = Write_STL; break;
                 case MeshFileFormats.Off: writeFunc = Write_OFF; break;
                 case MeshFileFormats.G3mesh: writeFunc = Write_G3Mesh; break;
+                case MeshFileFormats.Ply: writeFunc = Write_PLY; break;
                 default: return new IOWriteResult(IOCode.UnknownFormatError, $"format {format} is not supported");
             }
 
@@ -294,13 +297,39 @@ namespace g3
             return result;
         }
 
+        IOWriteResult Write_PLY(string sFilename, List<WriteMesh> vMeshes, WriteOptions options)
+        {
+            Stream stream = OpenStreamF(sFilename);
+            if (stream == null)
+                return new IOWriteResult(IOCode.FileAccessError, "Could not open file " + sFilename + " for writing");
+
+            try
+            {
+                return Write_PLY(stream, vMeshes, options);
+            }
+            finally
+            {
+                CloseStreamF(stream);
+            }
+        }
+
+        IOWriteResult Write_PLY(Stream stream, List<WriteMesh> vMeshes, WriteOptions options)
+        {
+            StreamWriter w = new StreamWriter(stream); // dont dispose the StreamWriter explicitly: it will dispose underlying Stream
+            PlyWriter writer = new PlyWriter();
+            IOWriteResult result = writer.Write(w, vMeshes, options);
+            w.Flush();
+            return result;
+        }
+
 
         public enum MeshFileFormats
         {
             Obj = 1,
             Stl = 2,
             Off = 4,
-            G3mesh = 8
+            G3mesh = 8,
+            Ply = 16
         }
     }
 }
