@@ -154,7 +154,21 @@ namespace g3
         /// </summary>
         /// <param name="q">the other quaternion</param>
         /// <returns>Angle in radians</returns>
-        public readonly float AngularDistanceR(in Quaternionf q) => 2.0f * (float)Math.Acos((this * q.Conjugate()).w);
+        public readonly float AngularDistanceR(in Quaternionf q)
+        {
+            Quaternionf a = Normalized;
+            Quaternionf b = q.Normalized;
+
+            // shortest-arc angle via absolute dot (to remove double-cover issue)
+            double cosineSimilarity = Math.Abs((double)a.x * b.x + (double)a.y * b.y + (double)a.z * b.z + (double)a.w * b.w);
+            // clamp
+            if (cosineSimilarity > 1.0)
+            {
+                cosineSimilarity = 1.0;
+            }
+
+            return 2f * (float)Math.Acos(cosineSimilarity);
+        }
 
         public static Quaternionf operator -(Quaternionf q1, Quaternionf q2)
         {
