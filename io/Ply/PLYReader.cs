@@ -1,24 +1,13 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Ply.Net;
 
 namespace g3
 {
-    public class PLYReader : IMeshReader, IBinaryMeshReader
+    public class PLYReader : IBinaryMeshReader
     {
         private const int MaxChunkSize = int.MaxValue;
-
-        public event ParsingMessagesHandler warningEvent;
-
-        public IOReadResult Read(TextReader reader, ReadOptions options, IMeshBuilder builder)
-        {
-            string text = reader.ReadToEnd();
-            byte[] bytes = Encoding.UTF8.GetBytes(text);
-
-            return Read(new MemoryStream(bytes), options, builder);
-        }
 
         public IOReadResult Read(Stream stream, ReadOptions options, IMeshBuilder builder)
         {

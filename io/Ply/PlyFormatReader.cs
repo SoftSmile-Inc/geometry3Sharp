@@ -33,8 +33,7 @@ namespace g3
         public IOReadResult ReadFile(Stream stream, IMeshBuilder builder, ReadOptions options, ParsingMessagesHandler messages)
         {
             PLYReader reader = new PLYReader();
-            reader.warningEvent += messages;
-            return reader.Read(new StreamReader(stream), options, builder);
+            return reader.Read(stream, options, builder);
         }
     }
 }
