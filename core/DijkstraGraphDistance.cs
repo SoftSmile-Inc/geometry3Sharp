@@ -72,7 +72,7 @@ namespace g3
         Func<int, IEnumerable<int>> NeighboursF;
 
         // maybe should be sparse array?
-        List<int> Seeds;
+        private HashSet<int> _seeds;
         float max_value;
 
         List<int> order;
@@ -109,7 +109,7 @@ namespace g3
                 DenseNodes = new GraphNodeStruct[nMaxID];
             }
 
-            Seeds = new List<int>();
+            _seeds = new HashSet<int>();
             max_value = float.MinValue;
             if (seeds != null) {
                 foreach (var v in seeds)
@@ -171,7 +171,7 @@ namespace g3
                 Array.Clear(DenseNodes, 0, DenseNodes.Length);
             }
 
-            Seeds = new List<int>();
+            _seeds = new HashSet<int>();
             max_value = float.MinValue;
         }
 
@@ -189,11 +189,11 @@ namespace g3
                 Debug.Assert(DenseQueue.Contains(id) == false);
                 enqueue_node_dense(id, seed_dist, -1);
             }
-            Seeds.Add(id);
+            _seeds.Add(id);
         }
         public bool IsSeed(int id)
         {
-            return Seeds.Contains(id);
+            return _seeds.Contains(id);
         }
 
 
