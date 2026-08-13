@@ -88,7 +88,8 @@ namespace g3
         /// constant-time check to see if node is already in queue
         /// </summary>
         public bool Contains(T node) {
-            return (nodes[node.index] == node);
+            return (node.index <= num_nodes && // 'num_nodes' is actually the Inclusive boundary (by some reason)
+                    nodes[node.index] == node);
         }
 
 
