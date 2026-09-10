@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,31 +10,33 @@ namespace g3
 
     public class DistLine3Triangle3
     {
-        Line3d line;
+        private DistLine3Segment3 _queryLs;
+        private Line3d _line;
+        private Triangle3d _triangle;
+
         public Line3d Line
         {
-            get { return line; }
-            set { line = value; DistanceSquared = -1.0; }
+            get { return _line; }
+            set { _line = value; DistanceSquared = -1.0; }
         }
 
-        Triangle3d triangle;
         public Triangle3d Triangle
         {
-            get { return triangle; }
-            set { triangle = value; DistanceSquared = -1.0; }
+            get { return _triangle; }
+            set { _triangle = value; DistanceSquared = -1.0; }
         }
 
         public double DistanceSquared = -1.0;
-
         public Vector3d LineClosest;
         public double LineParam;
         public Vector3d TriangleClosest;
         public Vector3d TriangleBaryCoords;
 
 
-        public DistLine3Triangle3(Line3d LineIn, Triangle3d TriangleIn)
+        public DistLine3Triangle3(Line3d lineIn, Triangle3d triangleIn)
         {
-            this.triangle = TriangleIn; this.line = LineIn;
+            _triangle = triangleIn;
+            _line = lineIn;
         }
 
         public DistLine3Triangle3 Compute()
@@ -55,16 +57,16 @@ namespace g3
                 return DistanceSquared;
 
             // Test if line intersects triangle.  If so, the squared distance is zero.
-            Vector3d edge0 = triangle.V1 - triangle.V0;
-            Vector3d edge1 = triangle.V2 - triangle.V0;
+            Vector3d edge0 = _triangle.V1 - _triangle.V0;
+            Vector3d edge1 = _triangle.V2 - _triangle.V0;
             Vector3d normal = edge0.UnitCross(edge1);
-            double NdD = normal.Dot(line.Direction);
+            double NdD = normal.Dot(_line.Direction);
             if (Math.Abs(NdD) > MathUtil.ZeroTolerance) {
                 // The line and triangle are not parallel, so the line intersects
                 // the plane of the triangle.
-                Vector3d diff = line.Origin - triangle.V0;
+                Vector3d diff = _line.Origin - _triangle.V0;
                 Vector3d U = Vector3d.Zero, V = Vector3d.Zero;
-                Vector3d.GenerateComplementBasis(ref U, ref V, line.Direction);
+                Vector3d.GenerateComplementBasis(ref U, ref V, _line.Direction);
                 double UdE0 = U.Dot(edge0);
                 double UdE1 = U.Dot(edge1);
                 double UdDiff = U.Dot(diff);
@@ -80,17 +82,17 @@ namespace g3
 
                 if (b0 >= 0 && b1 >= 0 && b2 >= 0) {
                     // Line parameter for the point of intersection.
-                    double DdE0 = line.Direction.Dot(edge0);
-                    double DdE1 = line.Direction.Dot(edge1);
-                    double DdDiff = line.Direction.Dot(diff);
+                    double DdE0 = _line.Direction.Dot(edge0);
+                    double DdE1 = _line.Direction.Dot(edge1);
+                    double DdDiff = _line.Direction.Dot(diff);
                     LineParam = b1 * DdE0 + b2 * DdE1 - DdDiff;
 
                     // Barycentric coordinates for the point of intersection.
                     TriangleBaryCoords = new Vector3d(b0, b1, b2);
 
                     // The intersection point is inside or on the triangle.
-                    LineClosest = line.Origin + LineParam * line.Direction;
-                    TriangleClosest = triangle.V0 + b1 * edge0 + b2 * edge1;
+                    LineClosest = _line.Origin + LineParam * _line.Direction;
+                    TriangleClosest = _triangle.V0 + b1 * edge0 + b2 * edge1;
                     DistanceSquared = 0;
                     return 0;
                 }
@@ -103,15 +105,17 @@ namespace g3
             // the line to all three edges of the triangle.
             double sqrDist = double.MaxValue;
             for (int i0 = 2, i1 = 0; i1 < 3; i0 = i1++) {
-                Segment3d segment = new Segment3d(triangle[i0], triangle[i1]);
-                DistLine3Segment3 queryLS = new DistLine3Segment3(line, segment);
-                double sqrDistTmp = queryLS.GetSquared();
+                Segment3d segment = new Segment3d(_triangle[i0], _triangle[i1]);
+                _queryLs ??= new DistLine3Segment3(_line, segment);
+                _queryLs.Line = _line;
+                _queryLs.Segment = segment;
+                double sqrDistTmp = _queryLs.GetSquared();
                 if (sqrDistTmp < sqrDist) {
-                    LineClosest = queryLS.LineClosest;
-                    TriangleClosest = queryLS.SegmentClosest;
+                    LineClosest = _queryLs.LineClosest;
+                    TriangleClosest = _queryLs.SegmentClosest;
                     sqrDist = sqrDistTmp;
-                    LineParam = queryLS.LineParameter;
-                    double ratio = queryLS.SegmentParameter / segment.Extent;
+                    LineParam = _queryLs.LineParameter;
+                    double ratio = _queryLs.SegmentParameter / segment.Extent;
                     TriangleBaryCoords = Vector3d.Zero;
                     TriangleBaryCoords[i0] = (0.5) * (1 - ratio);
                     TriangleBaryCoords[i1] = 1 - TriangleBaryCoords[i0];

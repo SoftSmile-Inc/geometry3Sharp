@@ -10,18 +10,20 @@ namespace g3
 
     public class DistSegment3Triangle3
     {
-        Segment3d segment;
+        private Segment3d _segment;
+        private Triangle3d _triangle;
+        private DistLine3Triangle3 _queryLt;
+
         public Segment3d Segment
         {
-            get { return segment; }
-            set { segment = value; DistanceSquared = -1.0; }
+            get { return _segment; }
+            set { _segment = value; DistanceSquared = -1.0; }
         }
 
-        Triangle3d triangle;
         public Triangle3d Triangle
         {
-            get { return triangle; }
-            set { triangle = value; DistanceSquared = -1.0; }
+            get { return _triangle; }
+            set { _triangle = value; DistanceSquared = -1.0; }
         }
 
         public double DistanceSquared = -1.0;
@@ -31,9 +33,10 @@ namespace g3
         public Vector3d TriangleClosest;
         public Vector3d TriangleBaryCoords;
 
-        public DistSegment3Triangle3(Segment3d SegmentIn, Triangle3d TriangleIn)
+        public DistSegment3Triangle3(Segment3d segmentIn, Triangle3d triangleIn)
         {
-            this.triangle = TriangleIn; this.segment = SegmentIn;
+            _triangle = triangleIn;
+            _segment = segmentIn;
         }
 
 
@@ -53,31 +56,27 @@ namespace g3
         {
             if (DistanceSquared >= 0)
                 return DistanceSquared;
-            Line3d line = new Line3d(segment.Center, segment.Direction);
-            DistLine3Triangle3 queryLT = new DistLine3Triangle3(line, triangle);
-            double sqrDist = queryLT.GetSquared();
-            SegmentParam = queryLT.LineParam;
+            Line3d line = new Line3d(_segment.Center, _segment.Direction);
+            _queryLt ??= new DistLine3Triangle3(line, _triangle);
+            _queryLt.Line = line;
+            _queryLt.Triangle = _triangle;
+            double sqrDist = _queryLt.GetSquared();
+            SegmentParam = _queryLt.LineParam;
 
-            if (SegmentParam >= -segment.Extent) {
-                if (SegmentParam <= segment.Extent) {
-                    SegmentClosest = queryLT.LineClosest;
-                    TriangleClosest = queryLT.TriangleClosest;
-                    TriangleBaryCoords = queryLT.TriangleBaryCoords;
+            if (SegmentParam >= -_segment.Extent) {
+                if (SegmentParam <= _segment.Extent) {
+                    SegmentClosest = _queryLt.LineClosest;
+                    TriangleClosest = _queryLt.TriangleClosest;
+                    TriangleBaryCoords = _queryLt.TriangleBaryCoords;
                 } else {
-                    SegmentClosest = segment.P1;
-                    DistPoint3Triangle3 queryPT = new DistPoint3Triangle3(SegmentClosest, triangle);
-                    sqrDist = queryPT.GetSquared();
-                    TriangleClosest = queryPT.TriangleClosest;
-                    SegmentParam = segment.Extent;
-                    TriangleBaryCoords = queryPT.TriangleBaryCoords;
+                    SegmentClosest = _segment.P1;
+                    sqrDist = DistPoint3Triangle3.DistanceSqr(ref SegmentClosest, ref _triangle, out TriangleClosest, out TriangleBaryCoords);
+                    SegmentParam = _segment.Extent;
                 }
             } else {
-                SegmentClosest = segment.P0;
-                DistPoint3Triangle3 queryPT = new DistPoint3Triangle3(SegmentClosest, triangle);
-                sqrDist = queryPT.GetSquared();
-                TriangleClosest = queryPT.TriangleClosest;
-                SegmentParam = -segment.Extent;
-                TriangleBaryCoords = queryPT.TriangleBaryCoords;
+                SegmentClosest = _segment.P0;
+                sqrDist = DistPoint3Triangle3.DistanceSqr(ref SegmentClosest, ref _triangle, out TriangleClosest, out TriangleBaryCoords);
+                SegmentParam = -_segment.Extent;
             }
 
             DistanceSquared = sqrDist;
