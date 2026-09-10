@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +27,9 @@ namespace g3
     ///   - WindingNumber(point)
     ///   - FastWindingNumber(point)
     ///   - DoTraversal(generic_traversal_object)
+    ///
+    /// Read-only tree navigation (node IDs belong to this tree and are invalid after rebuilding):
+    ///   - RootNodeId, GetNodeBounds, GetNodeChildren, GetLeafTriangleCount, GetLeafTriangleId
     /// 
     /// </summary>
     public class DMeshAABBTree3 : ISpatial
@@ -101,6 +104,120 @@ namespace g3
 
 
         public bool IsValid { get { return mesh_timestamp == mesh.ShapeTimestamp; } }
+
+        /// <summary>
+        /// Gets the starting node for a custom traversal of this mesh's bounding-box tree.
+        /// </summary>
+        /// <remarks>
+        /// Call Build before traversing; -1 means that no root has been built yet.
+        /// Start with GetNodeBounds to inspect the root's bounds, then use GetNodeChildren
+        /// to visit smaller parts of the mesh. A node ID identifies a node in this tree;
+        /// it is neither a mesh triangle ID nor an offset into the tree's internal storage.
+        /// Use IDs only with the tree that returned them, and discard them after rebuilding.
+        /// The mesh and tree must remain unchanged throughout a traversal.
+        /// </remarks>
+        public int RootNodeId => root_index;
+
+        /// <summary>
+        /// Gets a box enclosing all triangles below a node, for deciding whether to visit that subtree.
+        /// </summary>
+        /// <param name="nodeId">A node ID obtained from RootNodeId or GetNodeChildren on this tree.</param>
+        /// <returns>An axis-aligned box in the mesh's own coordinates, including numerical padding.</returns>
+        /// <remarks>
+        /// Use this box for an inexpensive rejection before inspecting children or triangles.
+        /// A box overlap alone does not prove that the enclosed triangles overlap.
+        /// If comparing objects in different frames, first express their bounds in the same frame.
+        /// The caller must use a built tree that is still valid for its mesh.
+        /// </remarks>
+        public AxisAlignedBox3d GetNodeBounds(int nodeId) => get_boxd(nodeId);
+
+        /// <summary>
+        /// Gets the immediate children to visit next, or reports that this node stores triangles directly.
+        /// </summary>
+        /// <param name="nodeId">A node ID obtained from RootNodeId or GetNodeChildren on this tree.</param>
+        /// <param name="childNodeId0">The first child's node ID, or -1 when this node is a leaf.</param>
+        /// <param name="childNodeId1">The second child's node ID, or -1 when there is no second child.</param>
+        /// <returns>0 for a leaf, 1 for a node with one child, or 2 for a node with two children.</returns>
+        /// <remarks>
+        /// When the result is 0, use GetLeafTriangleCount and GetLeafTriangleId to inspect the triangles.
+        /// Otherwise, use the returned IDs with GetNodeBounds and GetNodeChildren to continue traversal.
+        /// Child order is storage order; it does not indicate which child is nearer to a query object.
+        /// The caller must use a built tree that is still valid for its mesh.
+        /// </remarks>
+        public int GetNodeChildren(int nodeId, out int childNodeId0, out int childNodeId1)
+        {
+            childNodeId0 = -1;
+            childNodeId1 = -1;
+
+            // A node ID selects a record in index_list through box_to_index.
+            // Records before triangles_end contain triangles; later records contain child links.
+            int nodeDataOffset = box_to_index[nodeId];
+            if (nodeDataOffset < triangles_end)
+            {
+                return 0;
+            }
+
+            // Child IDs are stored as (ID + 1), so node 0 can also carry a sign.
+            // A negative first entry means one child: -(child ID + 1).
+            int encodedFirstChildId = index_list[nodeDataOffset];
+            if (encodedFirstChildId < 0)
+            {
+                childNodeId0 = (-encodedFirstChildId) - 1;
+                return 1;
+            }
+
+            // A positive first entry means two children, stored in adjacent entries.
+            childNodeId0 = encodedFirstChildId - 1;
+            childNodeId1 = index_list[nodeDataOffset + 1] - 1;
+            return 2;
+        }
+
+        /// <summary>
+        /// Gets how many triangles to inspect after traversal has reached a leaf.
+        /// </summary>
+        /// <param name="nodeId">A node from this tree for which GetNodeChildren returned 0.</param>
+        /// <returns>The number of triangles stored directly in this leaf.</returns>
+        /// <remarks>
+        /// Iterate from 0 up to, but not including, this count and pass each position to GetLeafTriangleId.
+        /// This method does not count triangles recursively below an internal node.
+        /// </remarks>
+        /// <exception cref="ArgumentException">The node is not a leaf.</exception>
+        public int GetLeafTriangleCount(int nodeId)
+        {
+            int nodeDataOffset = box_to_index[nodeId];
+            // A leaf record is [triangle count, triangle ID, triangle ID, ...].
+            return nodeDataOffset < triangles_end ? index_list[nodeDataOffset] : throw new ArgumentException($"DMeshAABBTree3.GetLeafTriangleCount: nodeId = {nodeId} is not a leaf", nameof(nodeId));
+        }
+
+        /// <summary>
+        /// Gets a mesh triangle ID from a leaf, so the caller can read that triangle from Mesh.
+        /// </summary>
+        /// <param name="nodeId">A node from this tree for which GetNodeChildren returned 0.</param>
+        /// <param name="triangleIndex">A zero-based position, less than GetLeafTriangleCount(nodeId).</param>
+        /// <returns>A triangle ID belonging to this tree's Mesh.</returns>
+        /// <remarks>
+        /// The position within a leaf differs from a mesh triangle ID: if a leaf stores IDs 14, 37 and 82,
+        /// triangleIndex = 1 returns 37. Use the returned ID with Mesh.GetTriangle or Mesh.GetTriVertices.
+        /// </remarks>
+        /// <exception cref="ArgumentException">The node is not a leaf, or triangleIndex is outside the leaf.</exception>
+        public int GetLeafTriangleId(int nodeId, int triangleIndex)
+        {
+            int nodeDataOffset = box_to_index[nodeId];
+            if (nodeDataOffset >= triangles_end)
+            {
+                throw new ArgumentException($"DMeshAABBTree3.GetLeafTriangleId: nodeId = {nodeId} is not a leaf", nameof(nodeId));
+            }
+
+            // The first entry is the count; the following entries are IDs in Mesh.
+            int triangleCount = index_list[nodeDataOffset];
+            if (triangleIndex < 0 || triangleIndex >= triangleCount)
+            {
+                throw new ArgumentException($"DMeshAABBTree3.GetLeafTriangleId: triangleIndex = {triangleIndex} is out of range", nameof(triangleIndex));
+            }
+
+            // Skip the count to address the requested position in the leaf's triangle list.
+            return index_list[nodeDataOffset + 1 + triangleIndex];
+        }
 
 
         /// <summary>
